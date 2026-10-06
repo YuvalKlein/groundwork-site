@@ -1,0 +1,5 @@
+# macOS
+.DS_Store
+
+# Explainer video renders and source bundles (~253MB) live outside git
+video/
