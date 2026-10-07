@@ -100,9 +100,16 @@ class GroundworkImprovement extends HTMLElement {
       const rate=raw=>raw.trim()===''?null:Number(raw);
       const next=[...root.querySelectorAll('[data-people] .person')].filter(r=>!r.dataset.removed).map(r=>{const p=people.find(x=>x.key===r.dataset.person);return {key:p.key,name:p.name,hourly_value_usd:rate(r.querySelector('[data-rate]').value)};});
       const name=root.querySelector('[data-new-name]').value.trim();
-      if(name){let key=name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'person';const base=key;let k=2;while(next.some(p=>p.key===key)||people.some(p=>p.key===key))key=(base.slice(0,36)+'-'+k++);next.push({key,name,hourly_value_usd:rate(root.querySelector('[data-new-rate]').value)});}
+      // Evidence names a person by key. Re-adding someone removed in this save keeps their key, so their recorded hours
+      // stay priced instead of moving to a fresh "-2" key; a different name never takes over a listed person's key.
+      const same=p=>p.name.trim().toLowerCase()===name.toLowerCase();
+      if(name&&next.some(same)){if(msg)msg.textContent=`${name} is already listed.`;return;}
+      if(name){let key=people.find(p=>same(p)&&!next.some(x=>x.key===p.key))?.key;if(!key){key=name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'person';const base=key;let k=2;while(next.some(p=>p.key===key)||people.some(p=>p.key===key))key=(base.slice(0,36)+'-'+k++);}next.push({key,name,hourly_value_usd:rate(root.querySelector('[data-new-rate]').value)});}
+      // Evidence still pointing at someone no longer listed is shown in hours only: say so instead of letting it go quiet.
+      const orphans=new Map();for(const n of nodes)for(const i of n.improvement.impacts||[]){const k=i.outcome?.person;if(k&&!next.some(p=>p.key===k))orphans.set(k,(orphans.get(k)||0)+1);}
+      const orphanNote=orphans.size?` · ${[...orphans].map(([k,c])=>`${people.find(p=>p.key===k)?.name||k}: ${c} evidence item${c>1?'s':''}`).join(', ')} now unpriced (hours only) until they are added back.`:'';
       save.disabled=true;
-      this.emit('settings',{body:{people:next},done:err=>{save.disabled=false;if(msg)msg.textContent=err||'Saved';}});};
+      this.emit('settings',{body:{people:next},done:err=>{save.disabled=false;if(msg)msg.textContent=err||'Saved'+orphanNote;}});};
   }
   tree(parent,nodes){return nodes.filter(n=>n.parent_id===parent).map(n=>`<div class="map"><button data-node="${n.id}"><small>${esc(n.improvement.kind)}</small> · ${esc(n.title)}</button>${this.tree(n.id,nodes)}</div>`).join('');}
   open(html){const d=this.shadowRoot.querySelector('dialog');d.innerHTML=`<div class="detail">${html}</div>`;if(!d.open)d.showModal();d.querySelector('[data-close]')?.addEventListener('click',()=>d.close());return d;}
