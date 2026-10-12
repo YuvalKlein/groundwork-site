@@ -15,3 +15,9 @@ See unitism-backend/docs/groundwork/continuous-improvement.md for setup, tests, 
 Schema alignment, 3 Oct 2026: Business view consumes read-only `anatomy` and `research_findings`;
 editable work is only Opportunity/Task. No business ontology or impact arithmetic lives in this UI.
 Unknown ratings remain unassessed; the server enforces measurement design before execution.
+
+Board editing, 12 Oct 2026 (unitism-backend groundwork-os-build-plan.md Phases 1–2): each card shows its value sign-off,
+missing required fields (`gaps`), comments, a proposal form for the owner and editor archive/restore. Calls other than
+board/save/settings/history go out as one `request` event `{method, path, body, done(err, result)}`, where `path` is
+relative to the workspace (`/proposals`, `/nodes/ID/approval`, `/nodes/ID/comments`, `/nodes/ID/archive|restore`); each
+host maps it to its own proxy. Buttons follow `board.role` and each state's `allowed_roles`; the backend decides.
