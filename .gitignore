@@ -3,3 +3,6 @@
 
 # Explainer video renders and source bundles (~253MB) live outside git
 video/
+
+# Generated static deployment
+dist/
