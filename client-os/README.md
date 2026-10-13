@@ -21,3 +21,8 @@ missing required fields (`gaps`), comments, a proposal form for the owner and ed
 board/save/settings/history go out as one `request` event `{method, path, body, done(err, result)}`, where `path` is
 relative to the workspace (`/proposals`, `/nodes/ID/approval`, `/nodes/ID/comments`, `/nodes/ID/archive|restore`); each
 host maps it to its own proxy. Buttons follow `board.role` and each state's `allowed_roles`; the backend decides.
+
+Review queue, 13 Oct 2026 (plan Phase 4): editor only. The bundle loads `GET /candidates` through the same `request` event
+and decides with `POST /candidates/ID/accept|attach|dismiss` and `PATCH /candidates/ID`. A rejected idea from a call needs a
+reason (the backend refuses one without). `board.call_log` shows decisions and commitments per call, also editor only,
+because both name people. Hosts must not pass either to readers or the owner.
