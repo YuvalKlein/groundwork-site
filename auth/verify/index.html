@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Signing in · Groundwork</title>
+  <style>body{font:16px system-ui;background:#f5f7f2;color:#18332e;max-width:560px;margin:12vh auto;padding:24px}a{color:#17816b}</style>
+</head>
+<body>
+  <h1>Signing in to Groundwork</h1>
+  <p id="status" role="status">Opening your workspace…</p>
+  <script>
+    // Shared UNITISM auth lives in client-os/app.js. This page is a callback
+    // adapter only; never verify tokens here or log the credential.
+    const query = new URLSearchParams(location.search);
+    const token = query.get('token');
+    const slug = query.get('app_slug');
+    history.replaceState(null, '', location.pathname);
+    if (token && (!slug || slug === 'groundwork')) {
+      const destination = new URL('/client-os/', location.origin);
+      destination.searchParams.set('token', token);
+      destination.searchParams.set('app_slug', 'groundwork');
+      location.replace(destination.href);
+    } else {
+      document.querySelector('#status').textContent = 'Invalid sign-in link. Request a new link from Groundwork.';
+    }
+  </script>
+</body>
+</html>
