@@ -10,7 +10,10 @@ const changes=['Repair','Optimize','Automate','Augment','Transform','Split/Merge
 const evidence=['Measured','Estimated','Expected','Not measured / Baseline needed'];
 class GroundworkImprovement extends HTMLElement {
   constructor(){super();this.attachShadow({mode:'open'});this.selected=null;this.filter='All';this.error='';this.busy=false;}
-  set board(value){this.data=value;if(value?.role==='editor')this.loadCandidates();this.render();}
+  set board(value){this.data=value;if(value?.role==='editor')this.loadCandidates();if(['owner','editor'].includes(value?.role))this.loadSources();this.render();}
+  // The business's own note takers and the meetings waiting for its choice. Owner or editor; keys go in once and never come back.
+  loadSources(){const seq=this.srcSeq=(this.srcSeq||0)+1;
+    Promise.all([this.request('GET','/call-sources'),this.request('GET','/calls/awaiting')]).then(([sources,awaiting])=>{if(seq===this.srcSeq){this.sources=sources;this.awaiting=awaiting;this.srcError='';this.render();}},e=>{if(seq===this.srcSeq){this.srcError=e.message;this.render();}});}
   // The review queue: ideas from interviews and recorded calls wait here until the editor decides. Nothing is on the board before that.
   loadCandidates(){const seq=this.candSeq=(this.candSeq||0)+1;
     this.request('GET','/candidates').then(rows=>{if(seq===this.candSeq){this.candidates=rows;this.candError='';this.render();}},e=>{if(seq===this.candSeq){this.candError=e.message;this.render();}});}
@@ -76,7 +79,7 @@ class GroundworkImprovement extends HTMLElement {
       .note{color:var(--muted);font-size:13px;margin-top:10px}.approvals b{color:var(--text)}.tag.appr{color:var(--muted)}.tag.appr.ok{border-color:var(--teal);color:var(--teal)}.gaptext{color:var(--amber)}
       .headline{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.hlcol{padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel2),var(--panel))}.hlgroup{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:12px 0 2px}.hl{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:6px 0}.hl b{font-size:24px;font-weight:600}.hl small{flex-basis:100%}
       @media(max-width:860px){.headline{grid-template-columns:1fr}}
-      .cand{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:10px 0}.cand h3{margin:8px 0 4px}.cand details{padding:8px 0 0}.cand .actions{margin-top:8px;flex-wrap:wrap}blockquote{margin:6px 0;padding-left:10px;border-left:2px solid var(--violet);color:var(--muted);font-size:14px}a{color:var(--teal)}.call ul{margin:4px 0 8px;padding-left:20px;font-size:14px}
+      .opt{display:flex;flex-direction:column;gap:2px;margin:8px 0;font-weight:400}.opt small{margin-left:24px}.cand{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:10px 0}.cand h3{margin:8px 0 4px}.cand details{padding:8px 0 0}.cand .actions{margin-top:8px;flex-wrap:wrap}blockquote{margin:6px 0;padding-left:10px;border-left:2px solid var(--violet);color:var(--muted);font-size:14px}a{color:var(--teal)}.call ul{margin:4px 0 8px;padding-left:20px;font-size:14px}
       .comment{border-left:2px solid var(--line);padding:6px 10px;margin:8px 0}.comment .comment{margin-left:14px}.comment small{display:block}.track{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
       details{border-top:1px solid var(--line);padding:12px 0}summary{cursor:pointer;font-weight:650}.map{padding:5px 0 5px 16px;border-left:1px solid var(--line);margin-left:6px}.map button{border:0;background:none;padding:5px;text-align:left}
       dialog{border:1px solid var(--line);border-radius:16px;max-width:980px;width:94vw;max-height:92vh;padding:0;color:var(--text);background:var(--panel)}dialog::backdrop{background:#020a14d0}dialog h1{font-size:26px}.detail{padding:26px}.cycle{display:flex;gap:6px;flex-wrap:wrap;margin:15px 0}.cycle span{font-size:12px;border:1px solid var(--line);padding:6px 9px;border-radius:6px}.notice{background:#0f2c44;border-left:3px solid var(--teal);padding:12px;margin:14px 0}.error{background:#3a1a12;color:#ffb59a;padding:12px;white-space:pre-wrap}
@@ -90,6 +93,7 @@ class GroundworkImprovement extends HTMLElement {
       <div class="grid">${dash.categories.map(card).join('')}</div>
       <p class="note">Every number says how we know it. ${esc(dash.note)}</p>
       <div class="people"><h3>Whose time · value of one hour each</h3><p class="muted">Released hours are priced at the rate of the person whose time they free. No rate = shown in hours only.</p>${this.data.role==='editor'?`<div data-people>${people.map((p,ix)=>`<div class="person" data-person="${esc(p.key)}"><span>${esc(p.name)}</span><span>$</span><input data-rate type="number" min="1" step="1" inputmode="decimal" value="${esc(p.hourly_value_usd??'')}" aria-label="Dollars per hour for ${esc(p.name)}" placeholder="not set"><small>/h</small><button data-remove="${ix}" aria-label="Remove ${esc(p.name)}">Remove</button></div>`).join('')}</div><div class="person"><input data-new-name placeholder="Add a person or role" aria-label="New person name"><span>$</span><input data-new-rate type="number" min="1" step="1" inputmode="decimal" placeholder="rate" aria-label="New person dollars per hour"><small>/h</small><span></span></div><div class="actions"><button class="primary" data-action="people">Save</button><small data-people-msg></small></div>`:people.map(p=>`<div class="person"><span>${esc(p.name)}</span><b>${p.hourly_value_usd===null?'not set':esc(money(p.hourly_value_usd,'USD'))+'/h'}</b></div>`).join('')||'<p class="muted">Nobody listed yet.</p>'}</div></section>`:''}
+    ${this.recordings()}
     ${this.reviewQueue()}
     <section class="section"><div class="heading"><h2>${focus?esc(focus.category)+' · opportunities':'Opportunity board'}</h2>${focus?'<button data-focus="">Show all</button>':''}${this.data.role==='editor'?'<button class="primary" data-action="new">Discover opportunity</button>':''}${['owner','editor'].includes(this.data.role)?'<button data-action="propose">Propose an idea</button>':''}</div>
       <div class="pipeline"><button data-filter="All" class="${this.filter==='All'?'selected':''}">All<b>${opportunities.length}</b></button>${pipeline.map(p=>`<button data-filter="${p.status}" class="${this.filter===p.status?'selected':''}">${p.status}<b>${p.count}</b></button>`).join('')}</div>
@@ -112,6 +116,7 @@ class GroundworkImprovement extends HTMLElement {
     this.shadowRoot.querySelector('[data-action="new"]')?.addEventListener('click',()=>this.edit(null,'Opportunity'));
     this.shadowRoot.querySelector('[data-action="propose"]')?.addEventListener('click',()=>this.propose());
     $$('[data-restore]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await this.request('POST','/nodes/'+b.dataset.restore+'/restore',{revision:Number(b.dataset.rev)});this.emit('refresh');}catch(e){this.error=e.message;this.render();}});
+    this.wireRecordings();
     $$('[data-cand]').forEach(box=>{
       const id=box.dataset.cand,err=box.querySelector('[role="alert"]');
       // Accept and attach change the board, so the whole board reloads; a rejection only changes the queue.
@@ -137,6 +142,54 @@ class GroundworkImprovement extends HTMLElement {
       const orphanNote=orphans.size?` · ${[...orphans].map(([k,c])=>`${people.find(p=>p.key===k)?.name||k}: ${c} evidence item${c>1?'s':''}`).join(', ')} now unpriced (hours only) until they are added back.`:'';
       save.disabled=true;
       this.emit('settings',{body:{people:next},done:err=>{save.disabled=false;if(msg)msg.textContent=err||'Saved'+orphanNote;}});};
+  }
+  recordings(){
+    if(!['owner','editor'].includes(this.data.role))return '';
+    const s=this.sources,scopes=s?.scopes||[],name={fathom:'Fathom',fireflies:'Fireflies'},waiting=this.awaiting||[];
+    const scopeLabel=k=>scopes.find(x=>x.key===k)?.label||k;
+    const radios=(group,current)=>scopes.map(o=>`<label class="opt"><span><input type="radio" name="${group}" value="${esc(o.key)}" ${o.key===current?'checked':''} style="width:auto"> <b>${esc(o.label)}</b></span><small>${esc(o.description)}</small></label>`).join('');
+    const conn=c=>`<div class="cand" data-source="${esc(c.id)}"><div class="track"><b>${esc(name[c.provider]||c.provider)}${c.label?' · '+esc(c.label):''}</b><span class="tag">${esc(scopeLabel(c.scope))}</span>${c.paused?'<span class="tag">Paused</span>':''}<small>key …${esc(c.credential_hint)} · ${c.last_synced_at?'last checked '+esc(new Date(c.last_synced_at).toLocaleString()):'not checked yet'}</small></div>
+      ${c.last_error?`<p class="error">${esc(c.last_error)}</p>`:''}
+      <div class="actions"><button data-src-sync>Check now</button><button data-src-pause="${c.paused?'':'1'}">${c.paused?'Resume':'Pause'}</button></div>
+      <details><summary>Which meetings to bring</summary>${radios('scope-'+c.id,c.scope)}<button data-src-scope>Save</button></details>
+      <details><summary>Replace the API key</summary><label>New API key<input type="password" autocomplete="off" data-src-key></label><button data-src-rekey>Replace</button></details>
+      <details><summary>Disconnect</summary><p class="note">The key is deleted. Ideas already brought in stay on the board.</p><button data-src-remove>Disconnect ${esc(name[c.provider]||c.provider)}</button></details>
+      <p role="alert" class="error" hidden></p></div>`;
+    const pick=c=>`<div class="person" data-await="${esc(c.id)}"><span><b>${esc(c.title||'Untitled meeting')}</b><br><small>${c.started_at?esc(new Date(c.started_at).toLocaleString()):''} · ${esc((c.attendees||[]).map(a=>a.email||a.name).filter(Boolean).join(', '))}</small></span><button class="primary" data-await-send>Send to Groundwork</button><button data-await-skip>Keep private</button><small role="alert"></small></div>`;
+    const body=this.srcError?`<p class="error">${esc(this.srcError)}</p>`:!s?'<p class="muted">Loading…</p>':`
+      ${s.sources.map(conn).join('')||'<p class="muted">No note taker connected yet.</p>'}
+      <details ${s.sources.length?'':'open'}><summary>Connect a note taker</summary><form data-src-new>
+        <label>Note taker<select name="provider">${(s.providers||[]).map(p=>`<option value="${esc(p)}">${esc(name[p]||p)}</option>`).join('')}</select></label>
+        <label>API key<input name="api_key" type="password" autocomplete="off" required></label>
+        <p class="note">Fathom: Settings → API Access. Fireflies: Settings → Developer settings. The key is checked, stored encrypted, and never shown again.</p>
+        <label>Name (optional)<input name="label" maxlength="100" placeholder="e.g. Sales team account"></label>
+        <h3>Which meetings to bring</h3>${radios('new-scope','with_consultant')}
+        <p role="alert" class="error" hidden></p><div class="actions"><button class="primary" type="submit">Connect</button></div></form></details>
+      ${waiting.length?`<h3>Meetings waiting for your choice · ${waiting.length}</h3><p class="note">Only the title and attendees are kept. Nothing is read until you send it.</p>${waiting.map(pick).join('')}`:''}`;
+    return `<section class="section"><details ${waiting.length?'open':''}><summary>Meeting recordings${waiting.length?` · ${waiting.length} waiting for your choice`:''}</summary><p class="note">Connect the note taker your business uses and choose which meetings Groundwork may read. Ideas from them go to review; nothing lands on the board by itself.</p>${body}</details></section>`;
+  }
+  wireRecordings(){
+    const root=this.shadowRoot,reload=()=>this.loadSources();
+    const form=root.querySelector('[data-src-new]');
+    if(form)form.onsubmit=async e=>{e.preventDefault();const err=form.querySelector('[role="alert"]'),btn=form.querySelector('[type="submit"]'),f=form.elements;err.hidden=true;btn.disabled=true;
+      try{await this.request('POST','/call-sources',{provider:f.provider.value,api_key:f.api_key.value,scope:form.querySelector('input[name="new-scope"]:checked')?.value,...(f.label.value.trim()?{label:f.label.value.trim()}:{})});reload();}
+      catch(x){err.textContent=x.message;err.hidden=false;btn.disabled=false;}};
+    root.querySelectorAll('[data-source]').forEach(box=>{
+      const id=box.dataset.source,err=box.querySelector(':scope > [role="alert"]');
+      const act=async(b,method,path,body)=>{err.hidden=true;b.disabled=true;try{await this.request(method,'/call-sources/'+id+path,body);reload();}catch(x){err.textContent=x.message;err.hidden=false;b.disabled=false;}};
+      box.querySelector('[data-src-sync]').onclick=e=>act(e.currentTarget,'POST','/sync');
+      box.querySelector('[data-src-pause]').onclick=e=>act(e.currentTarget,'PATCH','',{paused:!!e.currentTarget.dataset.srcPause});
+      box.querySelector('[data-src-scope]').onclick=e=>act(e.currentTarget,'PATCH','',{scope:box.querySelector('input[name="scope-'+id+'"]:checked')?.value});
+      box.querySelector('[data-src-rekey]').onclick=e=>act(e.currentTarget,'PATCH','',{api_key:box.querySelector('[data-src-key]').value});
+      box.querySelector('[data-src-remove]').onclick=e=>act(e.currentTarget,'DELETE','');
+    });
+    root.querySelectorAll('[data-await]').forEach(row=>{
+      const id=row.dataset.await,msg=row.querySelector('[role="alert"]');
+      // Sending reads the meeting in the background; its ideas show up in review a minute later.
+      const act=async(b,path,done)=>{b.disabled=true;try{await this.request('POST','/calls/'+id+path,{});msg.textContent=done;setTimeout(()=>this.emit('refresh'),done?1500:0);}catch(x){msg.textContent=x.message;b.disabled=false;}};
+      row.querySelector('[data-await-send]').onclick=e=>act(e.currentTarget,'/send','Sent. Its ideas reach review in about a minute.');
+      row.querySelector('[data-await-skip]').onclick=e=>act(e.currentTarget,'/skip','');
+    });
   }
   // Editor only: the queue shows who raised each idea, by name, and that never goes into a client-facing view.
   reviewQueue(){
