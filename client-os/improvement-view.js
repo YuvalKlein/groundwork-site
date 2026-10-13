@@ -10,7 +10,10 @@ const changes=['Repair','Optimize','Automate','Augment','Transform','Split/Merge
 const evidence=['Measured','Estimated','Expected','Not measured / Baseline needed'];
 class GroundworkImprovement extends HTMLElement {
   constructor(){super();this.attachShadow({mode:'open'});this.selected=null;this.filter='All';this.error='';this.busy=false;}
-  set board(value){this.data=value;this.render();}
+  set board(value){this.data=value;if(value?.role==='editor')this.loadCandidates();this.render();}
+  // The review queue: ideas from interviews and recorded calls wait here until the editor decides. Nothing is on the board before that.
+  loadCandidates(){const seq=this.candSeq=(this.candSeq||0)+1;
+    this.request('GET','/candidates').then(rows=>{if(seq===this.candSeq){this.candidates=rows;this.candError='';this.render();}},e=>{if(seq===this.candSeq){this.candError=e.message;this.render();}});}
   connectedCallback(){if(this.data)this.render();}
   emit(name,detail){this.dispatchEvent(new CustomEvent(name,{detail,bubbles:true,composed:true}));}
   // Any other backend call: path is relative to the workspace (e.g. /proposals, /nodes/ID/approval). The host maps and proxies it.
@@ -73,6 +76,7 @@ class GroundworkImprovement extends HTMLElement {
       .note{color:var(--muted);font-size:13px;margin-top:10px}.approvals b{color:var(--text)}.tag.appr{color:var(--muted)}.tag.appr.ok{border-color:var(--teal);color:var(--teal)}.gaptext{color:var(--amber)}
       .headline{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.hlcol{padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel2),var(--panel))}.hlgroup{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:12px 0 2px}.hl{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:6px 0}.hl b{font-size:24px;font-weight:600}.hl small{flex-basis:100%}
       @media(max-width:860px){.headline{grid-template-columns:1fr}}
+      .cand{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:10px 0}.cand h3{margin:8px 0 4px}.cand details{padding:8px 0 0}.cand .actions{margin-top:8px;flex-wrap:wrap}blockquote{margin:6px 0;padding-left:10px;border-left:2px solid var(--violet);color:var(--muted);font-size:14px}a{color:var(--teal)}.call ul{margin:4px 0 8px;padding-left:20px;font-size:14px}
       .comment{border-left:2px solid var(--line);padding:6px 10px;margin:8px 0}.comment .comment{margin-left:14px}.comment small{display:block}.track{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
       details{border-top:1px solid var(--line);padding:12px 0}summary{cursor:pointer;font-weight:650}.map{padding:5px 0 5px 16px;border-left:1px solid var(--line);margin-left:6px}.map button{border:0;background:none;padding:5px;text-align:left}
       dialog{border:1px solid var(--line);border-radius:16px;max-width:980px;width:94vw;max-height:92vh;padding:0;color:var(--text);background:var(--panel)}dialog::backdrop{background:#020a14d0}dialog h1{font-size:26px}.detail{padding:26px}.cycle{display:flex;gap:6px;flex-wrap:wrap;margin:15px 0}.cycle span{font-size:12px;border:1px solid var(--line);padding:6px 9px;border-radius:6px}.notice{background:#0f2c44;border-left:3px solid var(--teal);padding:12px;margin:14px 0}.error{background:#3a1a12;color:#ffb59a;padding:12px;white-space:pre-wrap}
@@ -86,6 +90,7 @@ class GroundworkImprovement extends HTMLElement {
       <div class="grid">${dash.categories.map(card).join('')}</div>
       <p class="note">Every number says how we know it. ${esc(dash.note)}</p>
       <div class="people"><h3>Whose time · value of one hour each</h3><p class="muted">Released hours are priced at the rate of the person whose time they free. No rate = shown in hours only.</p>${this.data.role==='editor'?`<div data-people>${people.map((p,ix)=>`<div class="person" data-person="${esc(p.key)}"><span>${esc(p.name)}</span><span>$</span><input data-rate type="number" min="1" step="1" inputmode="decimal" value="${esc(p.hourly_value_usd??'')}" aria-label="Dollars per hour for ${esc(p.name)}" placeholder="not set"><small>/h</small><button data-remove="${ix}" aria-label="Remove ${esc(p.name)}">Remove</button></div>`).join('')}</div><div class="person"><input data-new-name placeholder="Add a person or role" aria-label="New person name"><span>$</span><input data-new-rate type="number" min="1" step="1" inputmode="decimal" placeholder="rate" aria-label="New person dollars per hour"><small>/h</small><span></span></div><div class="actions"><button class="primary" data-action="people">Save</button><small data-people-msg></small></div>`:people.map(p=>`<div class="person"><span>${esc(p.name)}</span><b>${p.hourly_value_usd===null?'not set':esc(money(p.hourly_value_usd,'USD'))+'/h'}</b></div>`).join('')||'<p class="muted">Nobody listed yet.</p>'}</div></section>`:''}
+    ${this.reviewQueue()}
     <section class="section"><div class="heading"><h2>${focus?esc(focus.category)+' · opportunities':'Opportunity board'}</h2>${focus?'<button data-focus="">Show all</button>':''}${this.data.role==='editor'?'<button class="primary" data-action="new">Discover opportunity</button>':''}${['owner','editor'].includes(this.data.role)?'<button data-action="propose">Propose an idea</button>':''}</div>
       <div class="pipeline"><button data-filter="All" class="${this.filter==='All'?'selected':''}">All<b>${opportunities.length}</b></button>${pipeline.map(p=>`<button data-filter="${p.status}" class="${this.filter===p.status?'selected':''}">${p.status}<b>${p.count}</b></button>`).join('')}</div>
       ${(this.data.approval_track||[]).some(a=>a.count)?`<p class="note approvals">Value sign-off: ${this.data.approval_track.filter(a=>a.count).map(a=>`${esc(a.label)} <b>${a.count}</b>`).join(' · ')}${this.data.cards_with_gaps?` · <span class="gaptext">${this.data.cards_with_gaps} card${this.data.cards_with_gaps>1?'s':''} missing required fields</span>`:''}</p>`:''}
@@ -94,6 +99,7 @@ class GroundworkImprovement extends HTMLElement {
     <section class="section"><h2>What we've shipped</h2><p class="note">Value counts as delivered only once the business has confirmed it.</p><div class="delivered">${delivered.map(n=>{const vals=n.impact_results.filter(i=>i.outcome);return `<div class="done"><button class="link" data-node="${n.id}">${esc(n.title)}</button><p>${esc(n.description)}</p><div class="tags"><span class="tag">${esc(n.improvement.status)}</span>${this.approvalTag(n)}${vals.map(i=>`<span class="tag ${esc(i.type.split(' ')[0])}">${esc(i.outcome.category)}: ${esc(i.type==='Expected'&&i.target!==null?money(i.target,i.unit)+' expected':i.value!==null?money(i.value,i.unit):i.type==='Expected'?'expected, not quantified':'not measured yet')}</span>`).join('')}</div></div>`;}).join('')}</div></section>
     <section class="section"><details><summary>Business view · Business Anatomy ${esc(this.data.anatomy_contract?.schema_version||'0.1')}</summary><p class="muted">Descriptive mappings are separate from interventions. Process scopes below are proposed; Business Unit boundaries need review.</p>${(this.data.anatomy||[]).filter(a=>a.entity_type==='Process').map(a=>`<details><summary>${esc(a.name)} <span class="tag">Process · proposed</span></summary><p>${esc(a.properties.description)}</p><p><b>Mapped initiatives:</b> ${nodes.filter(n=>n.improvement.groundwork?.affected_anatomy_ids.includes(a.id)).map(n=>`<button class="link" data-node="${n.id}">${esc(n.title)}</button>`).join(' · ')}</p><p><b>Known gaps:</b> ${esc(a.gaps.join('; '))}</p></details>`).join('')||'<p>No descriptive business model has been imported. Unknown is valid.</p>'}</details>
     <details><summary>Business Anatomy research findings</summary>${(this.data.research_findings||[]).map(r=>`<details><summary>${esc(r.id)} · ${esc(r.observed_case)}</summary><p>${esc(r.schema_gap)}</p><p>${esc(r.suggested_question)}</p></details>`).join('')}</details></section>
+    ${this.callLog()}
     ${this.can('editor')&&(this.data.archived||[]).length?`<section class="section"><details><summary>Archived · ${this.data.archived.length}</summary>${this.data.archived.map(a=>`<div class="person"><span>${esc(a.title)}</span><small>${esc(a.archived_reason||'')}</small><span></span><button data-restore="${a.id}" data-rev="${a.revision}">Restore</button></div>`).join('')}</details></section>`:''}
     <footer>${esc(this.data.impact_note)}<br>Review cadence: ${esc(workspace.review_cadence)}</footer>
     ${this.error?`<p role="alert" class="error">${esc(this.error)}</p>`:''}</div><dialog aria-label="Opportunity detail"></dialog>`;
@@ -106,6 +112,15 @@ class GroundworkImprovement extends HTMLElement {
     this.shadowRoot.querySelector('[data-action="new"]')?.addEventListener('click',()=>this.edit(null,'Opportunity'));
     this.shadowRoot.querySelector('[data-action="propose"]')?.addEventListener('click',()=>this.propose());
     $$('[data-restore]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await this.request('POST','/nodes/'+b.dataset.restore+'/restore',{revision:Number(b.dataset.rev)});this.emit('refresh');}catch(e){this.error=e.message;this.render();}});
+    $$('[data-cand]').forEach(box=>{
+      const id=box.dataset.cand,err=box.querySelector('[role="alert"]');
+      // Accept and attach change the board, so the whole board reloads; a rejection only changes the queue.
+      const act=async(b,path,body,board)=>{err.hidden=true;b.disabled=true;try{await this.request('POST','/candidates/'+id+path,body);board?this.emit('refresh'):this.loadCandidates();}catch(e){err.textContent=e.message;err.hidden=false;b.disabled=false;}};
+      box.querySelector('[data-cand-accept]').onclick=e=>act(e.currentTarget,'/accept',{},true);
+      box.querySelector('[data-cand-attach]')?.addEventListener('click',e=>act(e.currentTarget,'/attach',{project_id:box.querySelector('[data-attach-to]').value},true));
+      box.querySelector('[data-cand-dismiss]').onclick=e=>act(e.currentTarget,'/dismiss',{reason:box.querySelector('[data-reject-reason]').value.trim()||undefined});
+      box.querySelector('[data-cand-edit]').onclick=()=>this.editCandidate(this.candidates.find(c=>c.id===id));
+    });
     const root=this.shadowRoot,save=root.querySelector('[data-action="people"]');
     root.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{b.closest('.person').hidden=true;b.closest('.person').dataset.removed='1';});
     if(save)save.onclick=()=>{const msg=root.querySelector('[data-people-msg]');
@@ -122,6 +137,40 @@ class GroundworkImprovement extends HTMLElement {
       const orphanNote=orphans.size?` · ${[...orphans].map(([k,c])=>`${people.find(p=>p.key===k)?.name||k}: ${c} evidence item${c>1?'s':''}`).join(', ')} now unpriced (hours only) until they are added back.`:'';
       save.disabled=true;
       this.emit('settings',{body:{people:next},done:err=>{save.disabled=false;if(msg)msg.textContent=err||'Saved'+orphanNote;}});};
+  }
+  // Editor only: the queue shows who raised each idea, by name, and that never goes into a client-facing view.
+  reviewQueue(){
+    if(!this.can('editor'))return '';
+    const all=this.candidates||[],pending=all.filter(c=>c.status==='pending'),decided=all.length-pending.length;
+    const opps=this.data.nodes.filter(n=>n.improvement.kind==='Opportunity');
+    const link=(url,text)=>/^https:\/\//.test(url||'')?` · <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(text)}</a>`:'';
+    const side={client:'client',consultant:'consultant'};
+    const from=c=>{const s=c.source||{};
+      if(s.kind==='fathom_call')return `Call · ${esc(s.call_title||'Untitled call')}${s.call_date?' · '+esc(new Date(s.call_date).toLocaleDateString()):''}${s.timestamp?' · '+esc(s.timestamp):''} · raised by ${esc(s.speaker||'unknown')} (${esc(side[s.side]||'side unknown')})${link(s.url,'Open recording')}`;
+      return `Interview · ${esc(s.agent_name||'Lobby')} · ${esc(s.audience||'')} · ${esc(c.people)} ${c.people===1?'person':'people'}`;};
+    const item=c=>{const call=c.source?.kind==='fathom_call',figures=call?c.source.figures||[]:[];
+      return `<div class="cand" data-cand="${esc(c.id)}"><div class="track"><span class="tag">${esc(c.affected_area||'Not mapped')}</span><small>${from(c)}</small></div>
+      <h3>${esc(c.title)}</h3><p class="pre">${esc(c.observation)}</p>${(c.quotes||[]).map(q=>`<blockquote>“${esc(q)}”</blockquote>`).join('')}
+      ${figures.length?`<p class="note">Said aloud, kept as quotes, not converted: ${figures.map(esc).join(' · ')}</p>`:''}
+      ${c.suggested_project_id&&c.suggested_project_title?`<p class="note">Looks like <b>${esc(c.suggested_project_title)}</b> already on the board. Consider attaching instead.</p>`:''}
+      <div class="actions"><button class="primary" data-cand-accept>Accept as a new card</button><button data-cand-edit>Edit</button></div>
+      ${opps.length?`<details><summary>Attach to an existing card</summary><label>Card<select data-attach-to>${opps.map(n=>`<option value="${esc(n.id)}" ${n.id===c.suggested_project_id?'selected':''}>${esc(n.title)}</option>`).join('')}</select></label><button data-cand-attach>Attach as evidence</button></details>`:''}
+      <details><summary>Reject</summary><label>Why${call?' (required for an idea from a call)':' (optional)'}<input data-reject-reason maxlength="2000"></label><button data-cand-dismiss>Reject</button></details>
+      <p role="alert" class="error" hidden></p></div>`;};
+    const body=this.candError?`<p class="error">${esc(this.candError)}</p>`:!this.candidates?'<p class="muted">Loading…</p>':pending.map(item).join('')||'<p class="muted">Nothing waiting for review.</p>';
+    return `<section class="section"><details ${pending.length?'open':''}><summary>Review queue · ${this.candidates?pending.length+' waiting':'…'}${decided?` · ${decided} decided`:''}</summary><p class="note">Ideas from interviews and recorded calls. Nothing is on the board until you accept it; an accepted idea lands as Proposed with its value not measured yet. A figure someone said stays a quote and never becomes money or hours.</p>${body}</details></section>`;
+  }
+  // Decisions and commitments from recorded calls are notes on the cycle log, never opportunities. Editor only (names).
+  callLog(){
+    const calls=this.data.call_log||[];if(!this.can('editor')||!calls.length)return '';
+    const list=(title,rows,who)=>rows?.length?`<h3>${title}</h3><ul>${rows.map(r=>`<li>${esc(r.text)}${r[who]?` <small>· ${esc(r[who])}</small>`:''}${r.timestamp?` <small>· ${esc(r.timestamp)}</small>`:''}</li>`).join('')}</ul>`:'';
+    return `<section class="section"><details><summary>Recorded calls · ${calls.length}</summary>${calls.map(c=>`<div class="done call"><b>${esc(c.title||'Untitled call')}</b><p>${c.started_at?esc(new Date(c.started_at).toLocaleString()):'Date unknown'} · ${esc(c.candidates_created)} idea${c.candidates_created===1?'':'s'} sent to review${/^https:\/\//.test(c.url||'')?` · <a href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">Open recording</a>`:''}</p>${list('Decided',c.notes?.decisions,'speaker')}${list('Committed',c.notes?.commitments,'owner')}</div>`).join('')}</details></section>`;
+  }
+  editCandidate(c){
+    const d=this.open(`<div class="heading"><h2>Edit before deciding</h2><button data-close>Cancel</button></div><form>${this.field('Title','title',c.title)}<label>What was said<textarea name="observation" rows="6">${esc(c.observation)}</textarea></label><p class="note">Quotes stay as they were said.</p><p role="alert" class="error" hidden></p><div class="actions"><button class="primary" type="submit">Save</button></div></form>`);
+    const form=d.querySelector('form');
+    form.onsubmit=async e=>{e.preventDefault();const err=form.querySelector('[role="alert"]'),btn=form.querySelector('[type="submit"]');err.hidden=true;btn.disabled=true;
+      try{await this.request('PATCH','/candidates/'+c.id,{title:form.elements.title.value,observation:form.elements.observation.value});d.close();this.loadCandidates();}catch(e){err.textContent=e.message;err.hidden=false;btn.disabled=false;}};
   }
   // Three numbers, never added together. Every line is one evidence type; business-confirmed lines come first.
   headline(h){
