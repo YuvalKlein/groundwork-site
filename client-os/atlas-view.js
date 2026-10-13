@@ -5,12 +5,13 @@ const safe = x => String(x ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 class GroundworkAtlas extends HTMLElement {
   constructor(){super();this.attachShadow({mode:'open'});this.selectedId=null;}
   set board(value){this.data=value;this.selectedId=null;this.render();}
-  set projection(value){this.data=value?{anatomy:value.entities,workspace:value.workspace,atlasProjection:true}:null;this.selectedId=null;this.render();}
+  set projection(value){this.data=value?{anatomy:value.entities,relationships:value.relationships,unknowns:value.unknowns,workspace:value.workspace,atlasProjection:true}:null;this.selectedId=null;this.render();}
   connectedCallback(){this.render();}
   render(){
     if(!this.shadowRoot)return;
     const data=this.data,records=Array.isArray(data?.anatomy)?data.anatomy:[];
     const chosen=records.find(x=>x.id===this.selectedId);
+    const edges=Array.isArray(data?.relationships)?data.relationships.filter(x=>x?.origin_entity_id===chosen?.id):[];
     this.shadowRoot.innerHTML=`<style>
       :host{display:block;font:15px/1.5 system-ui;color:#203c38}
       *{box-sizing:border-box}.intro{margin:0 0 16px;color:#60736f}
@@ -34,7 +35,8 @@ class GroundworkAtlas extends HTMLElement {
           <small>${safe(chosen.entity_type)} · ${safe(chosen.id)}</small>
           <p>${safe(chosen.properties?.description||'No verified description yet')}</p>
           ${Array.isArray(chosen.gaps)&&chosen.gaps.length?`<p class="gap"><strong>Knowledge gaps:</strong> ${safe(chosen.gaps.join(' · '))}</p>`:''}
-          <small>Relationships are shown only when typed and confirmed by the shared backend.</small>
+          ${edges.length?`<h3>Recorded relationships</h3><ul>${edges.map(e=>`<li>${safe(e.type||e.relationship_type||"Relationship type unknown")} → ${safe(e.target_id||e.to_id||"Target not resolved")}</li>`).join("")}</ul>`:"<small>No relationships available for this record.</small>"}
+          <small>Connections are listed exactly as stored; none are inferred from visual proximity.</small>
         </section>`:''}`}`;
     this.shadowRoot.querySelectorAll('button[data-id]').forEach(btn=>btn.addEventListener('click',()=>{this.selectedId=btn.dataset.id;this.render();}));
   }
