@@ -9,9 +9,24 @@ const report=e=>{err.textContent=e.message||String(e);};
 async function api(path,options={}){
  if(!config?.apiBase)throw new Error('The shared backend connection has not been configured.');
  const r=await fetch(config.apiBase.replace(/\/$/,'')+path,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...options.headers},cache:'no-store'});
- const body=await r.json().catch(()=>({message:'Backend unavailable'}));if(!r.ok)throw new Error(Array.isArray(body.message)?body.message.join('\n'):body.message||'Request failed');return body;
+ const body=await r.json().catch(()=>({message:'Backend unavailable'}));if(!r.ok){const e=new Error(Array.isArray(body.message)?body.message.join('\n'):body.message||'Request failed');e.status=r.status;throw e;}return body;
 }
-async function load(){const board=await api('/projects/improvement/workspaces/'+workspace);el.board=board;atlas.board=board;}
+async function load(){
+ const selected=workspace;
+ const board=await api('/projects/improvement/workspaces/'+selected);
+ if(selected!==workspace)return;
+ el.board=board;
+ // 404 means the new endpoint is not released yet; use the existing scoped board.
+ // Authorization errors MUST NOT fall back to another source.
+ try {
+   const view=await api('/projects/improvement/workspaces/'+selected+'/atlas');
+   if(selected===workspace)atlas.projection=view;
+ } catch(e) {
+   if(selected!==workspace)return;
+   if(e.status===404)atlas.board=board;
+   else {atlas.projection=null;report(e);}
+ }
+}
 async function start(){
  const workspaces=await api('/projects/improvement/workspaces');
  document.querySelector('#login').hidden=true;document.querySelector('#logout').hidden=false;document.querySelector('#picker').hidden=false;document.querySelector('#views').hidden=false;
