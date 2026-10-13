@@ -4,7 +4,8 @@
 const safe = x => String(x ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 class GroundworkAtlas extends HTMLElement {
   constructor(){super();this.attachShadow({mode:'open'});this.selectedId=null;}
-  set board(value){this.data=value;this.render();}
+  set board(value){this.data=value;this.selectedId=null;this.render();}
+  set projection(value){this.data=value?{anatomy:value.entities,workspace:value.workspace,atlasProjection:true}:null;this.selectedId=null;this.render();}
   connectedCallback(){this.render();}
   render(){
     if(!this.shadowRoot)return;
@@ -27,7 +28,7 @@ class GroundworkAtlas extends HTMLElement {
         `<p>${records.length} descriptive record(s). Unknown boundaries and relationships are not invented.</p>
         <div class="grid">${records.map(x=>`<button class="node" data-id="${safe(x.id)}" aria-pressed="${x.id===this.selectedId}">
           <span class="type">${safe(x.entity_type||'Unclassified')}</span><strong style="display:block">${safe(x.name||x.id)}</strong>
-          <small>${safe(x.review_status||'Review status unknown')}</small>
+          <small>${safe(x.review_status||'Review not yet confirmed')}</small>
         </button>`).join('')}</div>
         ${chosen?`<section class="detail" aria-label="Selected anatomy record"><h3>${safe(chosen.name||chosen.id)}</h3>
           <small>${safe(chosen.entity_type)} · ${safe(chosen.id)}</small>
