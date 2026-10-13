@@ -26,3 +26,7 @@ Review queue, 13 Oct 2026 (plan Phase 4): editor only. The bundle loads `GET /ca
 and decides with `POST /candidates/ID/accept|attach|dismiss` and `PATCH /candidates/ID`. A rejected idea from a call needs a
 reason (the backend refuses one without). `board.call_log` shows decisions and commitments per call, also editor only,
 because both name people. Hosts must not pass either to readers or the owner.
+
+Meeting recordings, 13 Oct 2026: owner and editor. The bundle reads `GET /call-sources` and `GET /calls/awaiting` and
+writes `POST /call-sources`, `PATCH|DELETE /call-sources/ID`, `POST /call-sources/ID/sync`, `POST /calls/ID/send|skip`
+through the `request` event. Hosts must refuse all of these to readers: they name attendees and hold the connection.
