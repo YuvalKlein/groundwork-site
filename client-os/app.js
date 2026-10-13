@@ -1,5 +1,9 @@
 import './improvement-view.js';
-const config=window.GROUNDWORK_CONFIG,el=document.querySelector('groundwork-improvement'),err=document.querySelector('#error');
+import './atlas-view.js';
+const config=window.GROUNDWORK_CONFIG,el=document.querySelector('groundwork-improvement'),atlas=document.querySelector('groundwork-atlas'),err=document.querySelector('#error');
+const show=which=>{document.querySelector('#atlas-panel').hidden=which!=='atlas';document.querySelector('#board-panel').hidden=which!=='board';};
+document.querySelector('#show-atlas').onclick=()=>show('atlas');
+document.querySelector('#show-board').onclick=()=>show('board');
 let token=sessionStorage.getItem('groundwork-session')||'',workspace='';
 const report=e=>{err.textContent=e.message||String(e);};
 async function api(path,options={}){
@@ -7,10 +11,10 @@ async function api(path,options={}){
  const r=await fetch(config.apiBase.replace(/\/$/,'')+path,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...options.headers},cache:'no-store'});
  const body=await r.json().catch(()=>({message:'Backend unavailable'}));if(!r.ok)throw new Error(Array.isArray(body.message)?body.message.join('\n'):body.message||'Request failed');return body;
 }
-async function load(){el.board=await api('/projects/improvement/workspaces/'+workspace);}
+async function load(){const board=await api('/projects/improvement/workspaces/'+workspace);el.board=board;atlas.board=board;}
 async function start(){
  const workspaces=await api('/projects/improvement/workspaces');
- document.querySelector('#login').hidden=true;document.querySelector('#logout').hidden=false;document.querySelector('#picker').hidden=false;
+ document.querySelector('#login').hidden=true;document.querySelector('#logout').hidden=false;document.querySelector('#picker').hidden=false;document.querySelector('#views').hidden=false;
  const select=document.querySelector('#workspaces');select.replaceChildren(...workspaces.map(w=>new Option(w.name,w.id)));
  if(!workspaces.length){err.textContent='No workspace has been granted to this account yet.';return;}
  workspace=workspaces[0].id;select.onchange=()=>{workspace=select.value;load().catch(report);};await load();
