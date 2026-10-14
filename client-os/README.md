@@ -54,3 +54,15 @@ unconfigured. The shared improvement-view.js bundle is unchanged.
 - Backend `CORS_ORIGIN` (Railway, per environment) must list the frontend origin.
 - The backend, not this client, keeps call notes and the review queue editor-only (#1094): a signed-in owner or
   reader calls the API directly, with no host in between to filter.
+
+Documents, 14 Oct 2026 (backend `documents` on the board): links beside the board. The editor adds, edits and archives them
+(`POST /documents`, `PATCH /documents/ID`, `POST /documents/ID/archive|restore`); the owner may add one; readers only read.
+The section shows only when the host sets the `documents` attribute on `<groundwork-improvement>`, which client-os does. A
+host that does not route `/documents` yet (Fresh Air) leaves it off and sees no change.
+
+Hebrew, 14 Oct 2026 (backend `workspace.locale`, `en` by default): with `he` the board renders right-to-left and its own
+labels in Hebrew. Templates stay English; after each render the bundle swaps its labels by exact text or pattern (`HE`,
+`HE_PATTERNS` in improvement-view.js), and anything not listed — people's own text, names, numbers — stays as written.
+English output is unchanged. The editor switches the language from the board when the host sets the `locales` attribute
+(client-os does; Fresh Air does not, so nobody can flip it there). The page around the board (`shell-i18n.js`) follows
+`?lang=he|en` on the link (remembered on the device), else the browser language, and the workspace's language once signed in.
