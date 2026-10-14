@@ -54,3 +54,8 @@ unconfigured. The shared improvement-view.js bundle is unchanged.
 - Backend `CORS_ORIGIN` (Railway, per environment) must list the frontend origin.
 - The backend, not this client, keeps call notes and the review queue editor-only (#1094): a signed-in owner or
   reader calls the API directly, with no host in between to filter.
+
+Documents, 14 Oct 2026 (backend `documents` on the board): links beside the board. The editor adds, edits and archives them
+(`POST /documents`, `PATCH /documents/ID`, `POST /documents/ID/archive|restore`); the owner may add one; readers only read.
+The section shows only when the host sets the `documents` attribute on `<groundwork-improvement>`, which client-os does. A
+host that does not route `/documents` yet (Fresh Air) leaves it off and sees no change.
