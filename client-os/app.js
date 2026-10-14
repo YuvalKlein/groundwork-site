@@ -7,10 +7,10 @@ const report=e=>{err.textContent=say(e.message||String(e));};
 async function api(path,options={}){
  if(!config?.apiBase)throw new Error('The shared backend connection has not been configured.');
  const r=await fetch(config.apiBase.replace(/\/$/,'')+path,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...options.headers},cache:'no-store'});
- const body=await r.json().catch(()=>({message:'Backend unavailable'}));if(r.status===401){token='';sessionStorage.removeItem(SESSION_KEY);document.querySelector('#login').hidden=false;document.querySelector('#logout').hidden=true;document.querySelector('#picker').hidden=true;el.board=null;}if(!r.ok)throw new Error(Array.isArray(body.message)?body.message.join('\n'):body.message||'Request failed');return body;
+ const body=await r.json().catch(()=>({message:'Backend unavailable'}));if(r.status===401){token='';sessionStorage.removeItem(SESSION_KEY);document.querySelector('#login').hidden=false;document.querySelector('#logout').hidden=true;document.querySelector('#picker').hidden=true;document.querySelector('#workspace-role').hidden=true;el.board=null;}if(!r.ok)throw new Error(Array.isArray(body.message)?body.message.join('\n'):body.message||'Request failed');return body;
 }
 // The page around the board follows the workspace's language once signed in.
-async function load(){const board=await api('/projects/improvement/workspaces/'+workspace);el.board=board;window.groundworkShell?.apply(board.workspace?.locale==='he'?'he':'en');}
+async function load(){const board=await api('/projects/improvement/workspaces/'+workspace);el.board=board;window.groundworkShell?.apply(board.workspace?.locale==='he'?'he':'en');const roleLabel=document.querySelector('#workspace-role');const roles={editor:['Consultant','יועץ'],owner:['Business owner','בעל העסק'],reader:['Viewer','צופה']};const label=roles[board.role];roleLabel.hidden=!label;roleLabel.textContent=label?(board.workspace?.locale==='he'?label[1]:label[0]):'';}
 async function start(){
  const workspaces=await api('/projects/improvement/workspaces');
  document.querySelector('#login').hidden=true;document.querySelector('#logout').hidden=false;document.querySelector('#picker').hidden=false;
