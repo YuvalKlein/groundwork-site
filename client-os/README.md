@@ -30,3 +30,27 @@ because both name people. Hosts must not pass either to readers or the owner.
 Meeting recordings, 13 Oct 2026: owner and editor. The bundle reads `GET /call-sources` and `GET /calls/awaiting` and
 writes `POST /call-sources`, `PATCH|DELETE /call-sources/ID`, `POST /call-sources/ID/sync`, `POST /calls/ID/send|skip`
 through the `request` event. Hosts must refuse all of these to readers: they name attendees and hold the connection.
+
+## Authentication deployment and Dev verification (13 Oct 2026)
+
+The callback uses the existing UNITISM `/api/v1/platform/auth/magic-link/verify`
+endpoint. It clears the URL before resource loads, verifies in place, stores only
+`access_token` in sessionStorage, and redirects to `/client-os/` without credentials.
+The initial email URL still contains the backend-issued query token: hosting logs
+must redact that query. Referrer-Policy and no-store do not erase edge access logs.
+Missing, duplicate, empty and non-Groundwork slugs fail closed.
+
+Run `node --test tests/*.test.mjs`. Vercel (project `groundwork`, team yuval-kleins-projects) runs
+`node scripts/build.mjs` and serves `dist`. The API base is public and set by environment: Preview →
+`https://unitism-backend-dev.up.railway.app/api/v1`, Production → `https://unitism-backend-production.up.railway.app/api/v1`.
+`GROUNDWORK_API_BASE` overrides either; a Production build refuses the Dev API. A plain static copy of the source stays
+unconfigured. The shared improvement-view.js bundle is unchanged.
+
+### Hosts and backend settings (14 Oct 2026)
+
+- Production `groundwork-woad.vercel.app`; Dev `groundwork-dev-yuval-kleins-projects.vercel.app` (behind Vercel SSO,
+  so only team members can open it). Both are allowlisted host-exact in the backend (#1093).
+- Backend `GROUNDWORK_MAGIC_LINK_URL` lives in `src/config/settings/platform.settings.ts` (#1098), `<host>/auth/verify/`.
+- Backend `CORS_ORIGIN` (Railway, per environment) must list the frontend origin.
+- The backend, not this client, keeps call notes and the review queue editor-only (#1094): a signed-in owner or
+  reader calls the API directly, with no host in between to filter.

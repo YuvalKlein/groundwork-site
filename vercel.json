@@ -1,0 +1,14 @@
+{
+  "buildCommand": "node scripts/build.mjs",
+  "outputDirectory": "dist",
+  "headers": [
+    {"source": "/auth/verify(.*)", "headers": [
+      {"key": "Cache-Control", "value": "no-store"},
+      {"key": "Referrer-Policy", "value": "no-referrer"}
+    ]},
+    {"source": "/client-os/(.*)", "headers": [
+      {"key": "Cache-Control", "value": "no-store"},
+      {"key": "Referrer-Policy", "value": "no-referrer"}
+    ]}
+  ]
+}
