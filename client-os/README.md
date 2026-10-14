@@ -40,40 +40,17 @@ The initial email URL still contains the backend-issued query token: hosting log
 must redact that query. Referrer-Policy and no-store do not erase edge access logs.
 Missing, duplicate, empty and non-Groundwork slugs fail closed.
 
-Run `node --test tests/*.test.mjs`. Vercel runs `node scripts/build.mjs` and serves
-`dist`. Preview builds use `https://unitism-backend-dev.up.railway.app/api/v1`.
-`GROUNDWORK_API_BASE` is a public build-time override. Production remains
-unconfigured unless explicitly set, and a Production build refuses the Dev API.
-The source config.js remains blank for direct/static hosting; use the build for Dev.
-The shared improvement-view.js bundle is unchanged.
+Run `node --test tests/*.test.mjs`. Vercel (project `groundwork`, team yuval-kleins-projects) runs
+`node scripts/build.mjs` and serves `dist`. The API base is public and set by environment: Preview →
+`https://unitism-backend-dev.up.railway.app/api/v1`, Production → `https://unitism-backend-production.up.railway.app/api/v1`.
+`GROUNDWORK_API_BASE` overrides either; a Production build refuses the Dev API. A plain static copy of the source stays
+unconfigured. The shared improvement-view.js bundle is unchanged.
 
-### Pending Dev setup — do not apply Railway changes before the host is ready
+### Hosts and backend settings (14 Oct 2026)
 
-Proposed stable Dev host: `groundwork-dev.unitism.world`. This is a new proposed
-host, not a verified existing deployment. The backend already trusts unitism.world
-subdomains; this avoids adding arbitrary Vercel tenants to its token allowlist.
-
-1. In Vercel project `groundwork` (`prj_bOk6OPXluhKhApOVlChsMym1HUwv`), attach
-   `groundwork-dev.unitism.world` to the Preview branch
-   `feat/groundwork-magic-link-callback`. Add the DNS record Vercel specifies.
-   Ensure the domain serves this branch, not main, and email recipients can open
-   the preview under its deployment-protection policy. Verify TLS and config.js.
-2. In Railway UNITISM / Dev / unitism-backend, review staged patch
-   `557935d9-c364-4bea-bade-a58c49018e2b`. It contains ONLY:
-   - GROUNDWORK_MAGIC_LINK_URL=https://groundwork-dev.unitism.world/auth/verify/
-   - Existing CORS_ORIGIN preserved, with https://groundwork-dev.unitism.world appended.
-   These changes have NOT been applied. Apply only once step 1 is verified.
-3. Confirm preflight allows that exact origin and a new email request succeeds.
-   Use a tester-controlled mailbox; no real email was sent in this audit.
-4. Open the link: verify the URL clears, the JWT session works, and only granted
-   workspaces appear. Test logout, expired links, replay (must return 401), and
-   wrong-app links. No-workspace is a valid authenticated result; a workspace
-   administrator must grant membership to test the real board. Do not bypass auth.
-5. Keep PR #11 Draft until the real email/session/workspace flow passes. Production
-   requires a separately tested backend release on main, its own API configuration,
-   CORS entry and GROUNDWORK_MAGIC_LINK_URL. Do not merge this PR to enable Dev.
-
-Live Dev smoke checks: health 200, invalid Groundwork verification 401,
-unauthenticated workspace list 401, localhost preflight 204. The existing production
-frontend origin failed Dev preflight (404 with no allow-origin). Vercel connector
-listed the project but denied deployment reads (403/404); no Vercel CLI is installed.
+- Production `groundwork-woad.vercel.app`; Dev `groundwork-dev-yuval-kleins-projects.vercel.app` (behind Vercel SSO,
+  so only team members can open it). Both are allowlisted host-exact in the backend (#1093).
+- Backend `GROUNDWORK_MAGIC_LINK_URL` lives in `src/config/settings/platform.settings.ts` (#1098), `<host>/auth/verify/`.
+- Backend `CORS_ORIGIN` (Railway, per environment) must list the frontend origin.
+- The backend, not this client, keeps call notes and the review queue editor-only (#1094): a signed-in owner or
+  reader calls the API directly, with no host in between to filter.

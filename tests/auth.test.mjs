@@ -47,6 +47,8 @@ test('build isolates Preview and refuses Dev API in Production', () => {
   execFileSync(process.execPath,['scripts/build.mjs'],{env:{...process.env,VERCEL_ENV:'preview',GROUNDWORK_API_BASE:''}});
   assert.match(readFileSync('dist/client-os/config.js','utf8'),/unitism-backend-dev.up.railway.app\/api\/v1/);
   execFileSync(process.execPath,['scripts/build.mjs'],{env:{...process.env,VERCEL_ENV:'production',GROUNDWORK_API_BASE:''}});
+  assert.match(readFileSync('dist/client-os/config.js','utf8'),/"apiBase":"https:\/\/unitism-backend-production.up.railway.app\/api\/v1"/);
+  execFileSync(process.execPath,['scripts/build.mjs'],{env:{...process.env,VERCEL_ENV:'',GROUNDWORK_API_BASE:''}});
   assert.match(readFileSync('dist/client-os/config.js','utf8'),/"apiBase":""/);
   assert.throws(()=>execFileSync(process.execPath,['scripts/build.mjs'],{env:{...process.env,VERCEL_ENV:'production',GROUNDWORK_API_BASE:'https://unitism-backend-dev.up.railway.app/api/v1'},stdio:'pipe'}));
 });
