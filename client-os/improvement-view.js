@@ -8,6 +8,7 @@ const cycle=['Learning','Preparing & Assumptions','Doing','Tracking','Analyzing'
 const kinds=['Opportunity','Task'];
 const changes=['Repair','Optimize','Automate','Augment','Transform','Split/Merge','Retire'];
 const evidence=['Measured','Estimated','Expected','Not measured / Baseline needed'];
+const docKinds=[['plan','Plan'],['meeting','Meeting'],['log','Log'],['report','Report'],['reference','Reference'],['other','Other']];
 class GroundworkImprovement extends HTMLElement {
   constructor(){super();this.attachShadow({mode:'open'});this.selected=null;this.filter='All';this.error='';this.busy=false;}
   set board(value){this.data=value;if(value?.role==='editor')this.loadCandidates();if(['owner','editor'].includes(value?.role))this.loadSources();this.render();}
@@ -100,6 +101,7 @@ class GroundworkImprovement extends HTMLElement {
       ${(this.data.approval_track||[]).some(a=>a.count)?`<p class="note approvals">Value sign-off: ${this.data.approval_track.filter(a=>a.count).map(a=>`${esc(a.label)} <b>${a.count}</b>`).join(' · ')}${this.data.cards_with_gaps?` · <span class="gaptext">${this.data.cards_with_gaps} card${this.data.cards_with_gaps>1?'s':''} missing required fields</span>`:''}</p>`:''}
       <div class="board"><div class="row head"><span>Opportunity</span><span>Value</span><span>Effort</span><span><span class="long">Confidence</span><span class="short">Conf.</span></span><span class="st">Stage</span></div>${rows.map(n=>`<div class="row ${n.id===firstId?'first':''}"><span class="t"><span class="pip ${['Measuring','Impact'].includes(n.improvement.status)?'shipped':''}"></span><button class="link" data-node="${n.id}" title="${esc(n.priority_assessment.explanation)}">${esc(n.title)}</button>${n.id===firstId?'<span class="first-badge">First</span>':''}${this.approvalTag(n)}${n.gaps?.length?`<small class="gaptext" title="Missing: ${esc(n.gaps.join(', '))}">${n.gaps.length} missing</small>`:''}</span>${bar(n.improvement.impact,'value')}${bar(n.improvement.effort,'effort')}${dots(n.improvement.confidence)}<span class="st"><span class="tag">${esc(n.improvement.status)}</span></span></div>`).join('')||'<div class="row"><span class="muted">Nothing here yet.</span></div>'}</div>
       <p class="note">Most value for the effort goes first. Value, effort and confidence are coarse 1–3 judgments pending review, not a forecast.</p></section>
+    ${this.documents()}
     <section class="section"><h2>What we've shipped</h2><p class="note">Value counts as delivered only once the business has confirmed it.</p><div class="delivered">${delivered.map(n=>{const vals=n.impact_results.filter(i=>i.outcome);return `<div class="done"><button class="link" data-node="${n.id}">${esc(n.title)}</button><p>${esc(n.description)}</p><div class="tags"><span class="tag">${esc(n.improvement.status)}</span>${this.approvalTag(n)}${vals.map(i=>`<span class="tag ${esc(i.type.split(' ')[0])}">${esc(i.outcome.category)}: ${esc(i.type==='Expected'&&i.target!==null?money(i.target,i.unit)+' expected':i.value!==null?money(i.value,i.unit):i.type==='Expected'?'expected, not quantified':'not measured yet')}</span>`).join('')}</div></div>`;}).join('')}</div></section>
     <section class="section"><details><summary>Business view · Business Anatomy ${esc(this.data.anatomy_contract?.schema_version||'0.1')}</summary><p class="muted">Descriptive mappings are separate from interventions. Process scopes below are proposed; Business Unit boundaries need review.</p>${(this.data.anatomy||[]).filter(a=>a.entity_type==='Process').map(a=>`<details><summary>${esc(a.name)} <span class="tag">Process · proposed</span></summary><p>${esc(a.properties.description)}</p><p><b>Mapped initiatives:</b> ${nodes.filter(n=>n.improvement.groundwork?.affected_anatomy_ids.includes(a.id)).map(n=>`<button class="link" data-node="${n.id}">${esc(n.title)}</button>`).join(' · ')}</p><p><b>Known gaps:</b> ${esc(a.gaps.join('; '))}</p></details>`).join('')||'<p>No descriptive business model has been imported. Unknown is valid.</p>'}</details>
     <details><summary>Business Anatomy research findings</summary>${(this.data.research_findings||[]).map(r=>`<details><summary>${esc(r.id)} · ${esc(r.observed_case)}</summary><p>${esc(r.schema_gap)}</p><p>${esc(r.suggested_question)}</p></details>`).join('')}</details></section>
@@ -117,6 +119,7 @@ class GroundworkImprovement extends HTMLElement {
     this.shadowRoot.querySelector('[data-action="propose"]')?.addEventListener('click',()=>this.propose());
     $$('[data-restore]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await this.request('POST','/nodes/'+b.dataset.restore+'/restore',{revision:Number(b.dataset.rev)});this.emit('refresh');}catch(e){this.error=e.message;this.render();}});
     this.wireRecordings();
+    this.wireDocuments();
     $$('[data-cand]').forEach(box=>{
       const id=box.dataset.cand,err=box.querySelector('[role="alert"]');
       // Accept and attach change the board, so the whole board reloads; a rejection only changes the queue.
@@ -214,6 +217,33 @@ class GroundworkImprovement extends HTMLElement {
     return `<section class="section"><details ${pending.length?'open':''}><summary>Review queue · ${this.candidates?pending.length+' waiting':'…'}${decided?` · ${decided} decided`:''}</summary><p class="note">Ideas from interviews and recorded calls. Nothing is on the board until you accept it; an accepted idea lands as Proposed with its value not measured yet. A figure someone said stays a quote and never becomes money or hours.</p>${body}</details></section>`;
   }
   // Decisions and commitments from recorded calls are notes on the cycle log, never opportunities. Editor only (names).
+  // Links beside the board. Editor adds, edits, archives; the owner may add one; readers only read. A host opts in with the
+  // `documents` attribute once it routes /documents; without it the section stays hidden, so other hosts are unchanged.
+  documents(){
+    const docs=this.data.documents;if(!Array.isArray(docs)||!this.hasAttribute('documents'))return '';
+    const live=docs.filter(d=>!d.archived_at),old=docs.filter(d=>d.archived_at),kind=k=>(docKinds.find(x=>x[0]===k)||[k,k])[1];
+    const card=id=>this.data.nodes.find(n=>n.id===id);
+    const row=d=>`<div class="done doc"><div class="tags"><span class="tag">${esc(kind(d.kind))}</span><small>Added by the ${esc(d.created_by_role==='owner'?'business owner':'consultant')}</small></div><h3>${/^https:\/\//.test(d.url)?`<a href="${esc(d.url)}" target="_blank" rel="noopener noreferrer">${esc(d.title)}</a>`:esc(d.title)}</h3>${d.project_id&&card(d.project_id)?`<p>For <button class="link" data-node="${d.project_id}">${esc(card(d.project_id).title)}</button></p>`:''}${this.can('editor')?`<div class="actions"><button data-doc-edit="${d.id}">Edit</button><button data-doc-archive="${d.id}">Archive</button></div>`:''}</div>`;
+    return `<section class="section"><div class="heading"><h2>Documents</h2>${['owner','editor'].includes(this.data.role)?'<button data-doc-add>Add a link</button>':''}</div>
+      <div class="delivered">${live.map(row).join('')||'<p class="muted">No documents yet.</p>'}</div>
+      ${this.can('editor')&&old.length?`<details><summary>Archived documents · ${old.length}</summary>${old.map(d=>`<div class="person"><span>${esc(d.title)}</span><small>${esc(d.archived_reason||'')}</small><span></span><button data-doc-restore="${d.id}">Restore</button></div>`).join('')}</details>`:''}</section>`;
+  }
+  wireDocuments(){
+    const root=this.shadowRoot,find=id=>(this.data.documents||[]).find(d=>d.id===id);
+    const act=async(b,path,body)=>{b.disabled=true;try{await this.request('POST',path,body);this.emit('refresh');}catch(e){this.error=e.message;this.render();}};
+    root.querySelector('[data-doc-add]')?.addEventListener('click',()=>this.editDocument(null));
+    root.querySelectorAll('[data-doc-edit]').forEach(b=>b.onclick=()=>this.editDocument(find(b.dataset.docEdit)));
+    root.querySelectorAll('[data-doc-archive]').forEach(b=>b.onclick=()=>{const d=find(b.dataset.docArchive);act(b,'/documents/'+d.id+'/archive',{revision:d.revision});});
+    root.querySelectorAll('[data-doc-restore]').forEach(b=>b.onclick=()=>{const d=find(b.dataset.docRestore);act(b,'/documents/'+d.id+'/restore',{revision:d.revision});});
+  }
+  editDocument(doc){
+    const cards=[['','None'],...this.data.nodes.filter(n=>n.improvement.kind==='Opportunity').map(n=>[n.id,n.title])];
+    const d=this.open(`<div class="heading"><h2>${doc?'Edit document':'Add a link'}</h2><button data-close>Cancel</button></div><form>${this.field('Title','title',doc?.title||'')}${this.select('Kind','kind',doc?.kind||'plan',docKinds)}${this.field('Link (https://…)','url',doc?.url||'','url')}${this.select('For opportunity (optional)','project_id',doc?.project_id||'',cards)}<p class="note">Share the document itself so the people in this workspace can open it. The link is saved, not the file.</p><p role="alert" class="error" hidden></p><div class="actions"><button class="primary" type="submit">Save</button></div></form>`);
+    const form=d.querySelector('form');
+    form.onsubmit=async e=>{e.preventDefault();const err=form.querySelector('[role="alert"]'),btn=form.querySelector('[type="submit"]'),f=form.elements;err.hidden=true;btn.disabled=true;
+      const body={title:f.title.value,kind:f.kind.value,url:f.url.value.trim(),project_id:f.project_id.value||null};
+      try{await this.request(doc?'PATCH':'POST',doc?'/documents/'+doc.id:'/documents',doc?{...body,revision:doc.revision}:body);d.close();this.emit('refresh');}catch(e){err.textContent=e.message;err.hidden=false;btn.disabled=false;}};
+  }
   callLog(){
     const calls=this.data.call_log||[];if(!this.can('editor')||!calls.length)return '';
     const list=(title,rows,who)=>rows?.length?`<h3>${title}</h3><ul>${rows.map(r=>`<li>${esc(r.text)}${r[who]?` <small>· ${esc(r[who])}</small>`:''}${r.timestamp?` <small>· ${esc(r.timestamp)}</small>`:''}</li>`).join('')}</ul>`:'';
