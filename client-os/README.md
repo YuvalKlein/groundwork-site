@@ -66,3 +66,6 @@ labels in Hebrew. Templates stay English; after each render the bundle swaps its
 English output is unchanged. The editor switches the language from the board when the host sets the `locales` attribute
 (client-os does; Fresh Air does not, so nobody can flip it there). The page around the board (`shell-i18n.js`) follows
 `?lang=he|en` on the link (remembered on the device), else the browser language, and the workspace's language once signed in.
+
+Currency, 15 Oct 2026: money is shown in the business's currency (`impact_dashboard.currency`, else `workspace.currency`, else
+USD): ₪ for ILS, `$` for USD exactly as before. The currency comes from the business record, not the board language.

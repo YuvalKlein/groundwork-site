@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 // Load the shared bundle's translation helpers without a browser: stub the custom-element API.
 const ctx = vm.createContext({HTMLElement: class {}, customElements: {define() {}}});
-vm.runInContext(readFileSync('client-os/improvement-view.js', 'utf8') + ';globalThis.__he={heText,HE};', ctx);
-const {heText, HE} = ctx.__he;
+vm.runInContext(readFileSync('client-os/improvement-view.js', 'utf8') + ';globalThis.__he={heText,HE,money};', ctx);
+const {heText, HE, money} = ctx.__he;
 test('every Hebrew entry is filled in', () => {
   for (const [en, he] of Object.entries(HE)) assert.ok(typeof he === 'string' && he.trim() && he !== en, en);
 });
@@ -37,4 +37,11 @@ test('the page shell translates only its marked labels', () => {
   assert.equal(doc.documentElement.dir, 'ltr');
   assert.equal(run('', 'he-IL').lang, 'he');
   assert.equal(run('', 'en-US').lang, 'en');
+});
+test("money follows the business currency; USD output is unchanged", () => {
+  assert.equal(money(9750, 'USD'), '$9,750');
+  assert.equal(money(15000, 'ILS'), '₪15,000');
+  assert.equal(money(12.5, 'ILS'), '₪12.5');
+  assert.equal(money(null, 'ILS'), '—');
+  assert.equal(money(3.7, 'hours'), '3.7 h');
 });
