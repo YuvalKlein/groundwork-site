@@ -69,3 +69,9 @@ English output is unchanged. The editor switches the language from the board whe
 
 Currency, 15 Oct 2026: money is shown in the business's currency (`impact_dashboard.currency`, else `workspace.currency`, else
 USD): ₪ for ILS, `$` for USD exactly as before. The currency comes from the business record, not the board language.
+
+Consultant home, 15 Oct 2026: when `GET /projects/improvement/overview` answers (the Groundwork admin), client-os opens on
+"All clients" (`consultant.js`): totals per currency, a row per client with "Open board", each client's identifiers and its
+"bring calls from my note takers" switch (`PATCH /workspaces/ID/settings`), the unassigned-call inbox, the consultant's own
+note takers (`/projects/improvement/calls/sources`) and "Add a client" (`POST /projects/improvement/overview/clients`). Anyone
+else gets a 403 from the overview and lands on their own board as before. The shared board bundle is unchanged.
