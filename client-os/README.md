@@ -75,3 +75,8 @@ Consultant home, 15 Oct 2026: when `GET /projects/improvement/overview` answers 
 "bring calls from my note takers" switch (`PATCH /workspaces/ID/settings`), the unassigned-call inbox, the consultant's own
 note takers (`/projects/improvement/calls/sources`) and "Add a client" (`POST /projects/improvement/overview/clients`). Anyone
 else gets a 403 from the overview and lands on their own board as before. The shared board bundle is unchanged.
+
+Files and signing, 18 Oct 2026: Documents can be uploaded files (`POST /documents/upload`, sent through the `request` event
+with a FormData body) and opened (`GET /documents/ID/file`, `request` with `as: 'blob'`). An `agreement` file shows who signed
+it, and a signed-in owner or editor who has not signed gets a Sign dialog: open the file, type a full name, tick consent.
+client-os's app.js passes FormData bodies as is and returns blobs for `as: 'blob'`.

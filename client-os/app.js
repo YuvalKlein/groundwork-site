@@ -5,9 +5,12 @@ const config=window.GROUNDWORK_CONFIG,el=document.querySelector('groundwork-impr
 let token='',workspace='';
 const say=s=>window.groundworkShell?.t(s)??s;
 const report=e=>{err.textContent=say(e.message||String(e));};
-async function api(path,options={}){
+// `as`: 'blob' returns a file's bytes. A FormData body (an upload) goes as multipart, so no JSON content type.
+async function api(path,options={},as){
  if(!config?.apiBase)throw new Error('The shared backend connection has not been configured.');
- const r=await fetch(config.apiBase.replace(/\/$/,'')+path,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...options.headers},cache:'no-store'});
+ const form=options.body instanceof FormData;
+ const r=await fetch(config.apiBase.replace(/\/$/,'')+path,{...options,headers:{...(form?{}:{'Content-Type':'application/json'}),...(token?{Authorization:'Bearer '+token}:{}),...options.headers},cache:'no-store'});
+ if(as==='blob'&&r.ok)return r.blob();
  const body=await r.json().catch(()=>({message:'Backend unavailable'}));if(r.status===401){token='';sessionStorage.removeItem(SESSION_KEY);document.querySelector('#login').hidden=false;document.querySelector('#logout').hidden=true;document.querySelector('#picker').hidden=true;document.querySelector('#workspace-role').hidden=true;el.board=null;}if(!r.ok)throw new Error(Array.isArray(body.message)?body.message.join('\n'):body.message||'Request failed');return body;
 }
 // The page around the board follows the workspace's language once signed in.
@@ -31,7 +34,7 @@ document.querySelector('#logout').onclick=()=>{sessionStorage.removeItem('ground
 el.addEventListener('refresh',()=>load().catch(report));
 el.addEventListener('save',async({detail:d})=>{try{await api('/projects/improvement/workspaces/'+workspace+'/nodes'+(d.id?'/'+d.id:''),{method:d.id?'PUT':'POST',body:JSON.stringify(d.body)});d.done();await load();}catch(e){d.done(e.message);}});
 // Proposals, approval, comments, archive: the bundle names a path under the workspace; the backend enforces who may do what.
-el.addEventListener('request',async({detail:d})=>{try{d.done(null,await api('/projects/improvement/workspaces/'+workspace+d.path,{method:d.method,...(d.body!==undefined?{body:JSON.stringify(d.body)}:{})}));}catch(e){d.done(e.message);}});
+el.addEventListener('request',async({detail:d})=>{try{d.done(null,await api('/projects/improvement/workspaces/'+workspace+d.path,{method:d.method,...(d.body!==undefined?{body:d.body instanceof FormData?d.body:JSON.stringify(d.body)}:{})},d.as));}catch(e){d.done(e.message);}});
 el.addEventListener('settings',async({detail:d})=>{try{await api('/projects/improvement/workspaces/'+workspace+'/settings',{method:'PATCH',body:JSON.stringify(d.body)});d.done();await load();}catch(e){d.done(e.message);}});
 el.addEventListener('history',async({detail:d})=>{try{const rows=await api('/projects/improvement/workspaces/'+workspace+'/nodes/'+d.id+'/events');d.target.textContent=rows.map(r=>r.created_at+' · '+r.event_type+' · '+(r.metadata.actor||'Historical backfill')+'\n'+JSON.stringify(r.metadata.after?.cycle||{})).join('\n\n');d.target.className='pre';}catch(e){report(e);}});
 (async()=>{try{
