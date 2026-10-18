@@ -10,7 +10,7 @@ const cycle=['Learning','Preparing & Assumptions','Doing','Tracking','Analyzing'
 const kinds=['Opportunity','Task'];
 const changes=['Repair','Optimize','Automate','Augment','Transform','Split/Merge','Retire'];
 const evidence=['Measured','Estimated','Expected','Not measured / Baseline needed'];
-const docKinds=[['plan','Plan'],['meeting','Meeting'],['log','Log'],['report','Report'],['reference','Reference'],['other','Other']];
+const docKinds=[['plan','Plan'],['meeting','Meeting'],['log','Log'],['report','Report'],['reference','Reference'],['agreement','Agreement'],['other','Other']];
 // Board language comes from the workspace (data): `workspace.locale` 'he' renders these labels in Hebrew, right-to-left.
 // Templates stay in English; after each render the shadow tree's own labels are swapped by exact text or pattern.
 // Anything not listed (people's own text, names, numbers) is left as written. English renders exactly as before.
@@ -24,7 +24,7 @@ const HE={
 'Every recorded meeting':'כל פגישה מוקלטת','Every meeting this account records is read automatically.':'כל פגישה שהחשבון הזה מקליט נקראת אוטומטית.','Meetings with the consultant':'פגישות עם היועץ','Only meetings the consultant attended. Your other meetings are never read.':'רק פגישות שהיועץ השתתף בהן. שאר הפגישות שלכם לא נקראות לעולם.','Meetings with only our people':'פגישות של אנשי העסק בלבד','Only meetings where everyone is from the business (the consultant may join). Uses the business email domains.':'רק פגישות שכל המשתתפים בהן מהעסק (היועץ יכול להצטרף). לפי דומיין המייל של העסק.','I choose each meeting':'אני בוחר/ת כל פגישה','Every meeting waits here with its title and attendees only. Nothing is read until you send it.':'כל פגישה ממתינה כאן עם הכותרת והמשתתפים בלבד. שום דבר לא נקרא עד שתשלחו.',
 'Review queue':'תור לבדיקה','Nothing waiting for review.':'אין רעיונות שממתינים לבדיקה.','Accept as a new card':'אישור ככרטיס חדש','Attach to an existing card':'צירוף לכרטיס קיים','Card':'כרטיס','Attach as evidence':'צירוף כראיה','Reject':'דחייה','Edit before deciding':'עריכה לפני החלטה','What was said':'מה נאמר','Quotes stay as they were said.':'ציטוטים נשארים כפי שנאמרו.',
 'Opportunity board':'לוח ההזדמנויות','Show all':'הצגת הכול','Discover opportunity':'הזדמנות חדשה','Propose an idea':'הצעת רעיון','All':'הכול','Opportunity':'הזדמנות','Task':'משימה','Effort':'מאמץ','Confidence':'ביטחון','Conf.':'ביטחון','Stage':'שלב','First':'ראשון','Nothing here yet.':'אין כאן עדיין כלום.','Most value for the effort goes first. Value, effort and confidence are coarse 1–3 judgments pending review, not a forecast.':'קודם מה שנותן הכי הרבה ערך ביחס למאמץ. ערך, מאמץ וביטחון הם הערכות גסות בסולם 1–3 שממתינות לבדיקה, לא תחזית.',
-'Documents':'מסמכים','Add a link':'הוספת קישור','Added by the consultant':'נוסף על ידי היועץ','Added by the business owner':'נוסף על ידי בעלת העסק','For':'עבור','No documents yet.':'עדיין אין מסמכים.','Edit document':'עריכת מסמך','Title':'כותרת','Kind':'סוג','Link (https://…)':'קישור (‎https://…‎)','For opportunity (optional)':'עבור הזדמנות (לא חובה)','Share the document itself so the people in this workspace can open it. The link is saved, not the file.':'שתפו את המסמך עצמו כדי שהאנשים בסביבת העבודה יוכלו לפתוח אותו. נשמר הקישור, לא הקובץ.','Plan':'תוכנית','Meeting':'פגישה','Log':'יומן','Report':'דוח','Reference':'חומר עזר','Other':'אחר',
+'Documents':'מסמכים','Add a link':'הוספת קישור','Added by the consultant':'נוסף על ידי היועץ','Added by the business owner':'נוסף על ידי בעלת העסק','For':'עבור','No documents yet.':'עדיין אין מסמכים.','Edit document':'עריכת מסמך','Title':'כותרת','Kind':'סוג','Link (https://…)':'קישור (‎https://…‎)','For opportunity (optional)':'עבור הזדמנות (לא חובה)','Share the document itself so the people in this workspace can open it. The link is saved, not the file.':'שתפו את המסמך עצמו כדי שהאנשים בסביבת העבודה יוכלו לפתוח אותו. נשמר הקישור, לא הקובץ.','Plan':'תוכנית','Agreement':'הסכם','Tick the consent box to sign':'סמנו את תיבת ההסכמה כדי לחתום','Type your full name to sign':'הקלידו שם מלא כדי לחתום','You have already signed this document':'כבר חתמת על המסמך הזה','Sign in with your own account to sign':'כדי לחתום צריך להיכנס עם החשבון שלך','Only a stored agreement file can be signed':'אפשר לחתום רק על קובץ הסכם שהועלה','File storage is not configured yet':'אחסון הקבצים עוד לא הוגדר','PDF, Word, Excel, PowerPoint, an image or plain text only':'רק PDF, ‏Word, ‏Excel, ‏PowerPoint, תמונה או טקסט','At most 20 MB':'עד 20MB','Attach a file':'צרפו קובץ','A title is required (at most 300 characters)':'צריך כותרת (עד 300 תווים)','Upload a file':'העלאת קובץ','Upload':'העלאה','File (PDF, Word, Excel, PowerPoint, image; up to 20 MB)':'קובץ (PDF, ‏Word, ‏Excel, ‏PowerPoint או תמונה; עד 20MB)','The file is kept privately and opens only for people in this workspace. An agreement can be signed once it is uploaded.':'הקובץ נשמר באופן פרטי ונפתח רק לאנשים בסביבת העבודה הזו. אחרי ההעלאה אפשר לחתום על הסכם.','Signed':'נחתם','Not signed yet.':'עדיין לא נחתם.','Sign':'חתימה','Open the document':'פתיחת המסמך','Full name':'שם מלא','Meeting':'פגישה','Log':'יומן','Report':'דוח','Reference':'חומר עזר','Other':'אחר',
 "What we've shipped":'מה כבר יצא לדרך','Value counts as delivered only once the business has confirmed it.':'ערך נחשב כמסופק רק אחרי שהעסק אישר אותו.',
 'Descriptive mappings are separate from interventions. Process scopes below are proposed; Business Unit boundaries need review.':'המיפוי התיאורי נפרד מההתערבויות. התהליכים שלהלן מוצעים; גבולות היחידות העסקיות טעונים בדיקה.','Process · proposed':'תהליך · מוצע','Mapped initiatives:':'יוזמות ממופות:','Known gaps:':'פערים ידועים:','No descriptive business model has been imported. Unknown is valid.':'לא יובא מודל עסקי תיאורי. "לא ידוע" זו תשובה לגיטימית.','Business Anatomy research findings':'ממצאי מחקר של Business Anatomy',
 'Owner:':'אחראי:','Review date:':'תאריך סקירה:','Missing:':'חסר:','Value sign-off:':'אישור ערך:','The business has confirmed this value.':'העסק אישר את הערך הזה.','Value stays Expected or Estimated until the business confirms it.':'הערך נשאר צפוי או מוערך עד שהעסק מאשר אותו.','Note (needed to move back)':'הערה (נדרשת כדי לחזור אחורה)',
@@ -66,6 +66,8 @@ const HE_PATTERNS=[
  [/^Before: (.+) · After: (.+) · Target: (.+)$/,(_,b,a,t)=>`לפני: ${heText(b)} · אחרי: ${heText(a)} · יעד: ${heText(t)}`],
  [/^Evidence: (.+)$/s,(_,e)=>'ראיה: '+heText(e)],
  [/^Business view · Business Anatomy (.+)$/,(_,v)=>`תמונת העסק · Business Anatomy ${v}`],
+ [/^Sign: (.+)$/s,(_,t)=>'חתימה: '+t],
+ [/^Signing binds your name to this exact file \(fingerprint (.+)\)\. The date and time are recorded with it\.$/,(_,h)=>`החתימה קושרת את שמך לקובץ הזה בדיוק (טביעת אצבע ${h}). התאריך והשעה נשמרים איתה.`],
  [/^Archived documents · (\d+)$/,(_,n)=>`מסמכים בארכיון · ${n}`],
  [/^Meetings waiting for your choice · (\d+)$/,(_,n)=>`פגישות שממתינות לבחירתך · ${n}`],
  [/^Meeting recordings · (\d+) waiting for your choice$/,(_,n)=>`הקלטות פגישות · ${n} ממתינות לבחירתך`],
@@ -97,7 +99,7 @@ class GroundworkImprovement extends HTMLElement {
   connectedCallback(){if(this.data)this.render();}
   emit(name,detail){this.dispatchEvent(new CustomEvent(name,{detail,bubbles:true,composed:true}));}
   // Any other backend call: path is relative to the workspace (e.g. /proposals, /nodes/ID/approval). The host maps and proxies it.
-  request(method,path,body){return new Promise((resolve,reject)=>this.emit('request',{method,path,body,done:(err,result)=>err?reject(new Error(err)):resolve(result)}));}
+  request(method,path,body,as){return new Promise((resolve,reject)=>this.emit('request',{method,path,body,as,done:(err,result)=>err?reject(new Error(err)):resolve(result)}));}
   can(role){return this.data.role===role;}
   get he(){return this.data?.workspace?.locale==='he';}
   get cur(){return this.data?.impact_dashboard?.currency||this.data?.workspace?.currency||'USD';}
@@ -166,6 +168,7 @@ class GroundworkImprovement extends HTMLElement {
       .headline{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.hlcol{padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel2),var(--panel))}.hlgroup{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:12px 0 2px}.hl{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:6px 0}.hl b{font-size:24px;font-weight:600}.hl small{flex-basis:100%}
       @media(max-width:860px){.headline{grid-template-columns:1fr}}
       .opt{display:flex;flex-direction:column;gap:2px;margin:8px 0;font-weight:400}.opt small{margin-inline-start:24px}.cand{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin:10px 0}.cand h3{margin:8px 0 4px}.cand details{padding:8px 0 0}.cand .actions{margin-top:8px;flex-wrap:wrap}blockquote{margin:6px 0;padding-inline-start:10px;border-inline-start:2px solid var(--violet);color:var(--muted);font-size:14px}a{color:var(--teal)}.call ul{margin:4px 0 8px;padding-inline-start:20px;font-size:14px}
+      .signed{margin:6px 0}.tag.ok{border-color:var(--teal);color:var(--teal)}.sigs{margin:8px 0}
       .comment{border-inline-start:2px solid var(--line);padding:6px 10px;margin:8px 0}.comment .comment{margin-inline-start:14px}.comment small{display:block}.track{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
       .lang{flex-direction:row;align-items:center;margin:0}.lang select{width:auto}
       details{border-top:1px solid var(--line);padding:12px 0}summary{cursor:pointer;font-weight:650}.map{padding-block:5px;padding-inline:16px 0;border-inline-start:1px solid var(--line);margin-inline-start:6px}.map button{border:0;background:none;padding:5px;text-align:start}
@@ -312,8 +315,11 @@ class GroundworkImprovement extends HTMLElement {
     const docs=this.data.documents;if(!Array.isArray(docs)||!this.hasAttribute('documents'))return '';
     const live=docs.filter(d=>!d.archived_at),old=docs.filter(d=>d.archived_at),kind=k=>(docKinds.find(x=>x[0]===k)||[k,k])[1];
     const card=id=>this.data.nodes.find(n=>n.id===id);
-    const row=d=>`<div class="done doc"><div class="tags"><span class="tag">${esc(kind(d.kind))}</span><small>Added by the ${esc(d.created_by_role==='owner'?'business owner':'consultant')}</small></div><h3>${/^https:\/\//.test(d.url)?`<a href="${esc(d.url)}" target="_blank" rel="noopener noreferrer">${esc(d.title)}</a>`:esc(d.title)}</h3>${d.project_id&&card(d.project_id)?`<p>For <button class="link" data-node="${d.project_id}">${esc(card(d.project_id).title)}</button></p>`:''}${this.can('editor')?`<div class="actions"><button data-doc-edit="${d.id}">Edit</button><button data-doc-archive="${d.id}">Archive</button></div>`:''}</div>`;
-    return `<section class="section"><div class="heading"><h2>Documents</h2>${['owner','editor'].includes(this.data.role)?'<button data-doc-add>Add a link</button>':''}</div>
+    const size=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
+    // An agreement file shows who signed it; a signed-in owner or editor who has not signed gets the Sign button.
+    const signing=d=>d.kind!=='agreement'||!d.file_name?'':`<div class="sigs">${(d.signatures||[]).map(x=>`<p class="signed"><span class="tag ok">Signed</span> ${esc(x.signer_name)} <small>${esc(x.signer_role==='owner'?'Business owner':'Consultant')} · ${esc(new Date(x.signed_at).toLocaleString())}</small></p>`).join('')||'<p class="muted">Not signed yet.</p>'}${!d.signed_by_me&&['owner','editor'].includes(this.data.role)?`<button class="primary" data-doc-sign="${d.id}">Sign</button>`:''}</div>`;
+    const row=d=>`<div class="done doc"><div class="tags"><span class="tag">${esc(kind(d.kind))}</span><small>Added by the ${esc(d.created_by_role==='owner'?'business owner':'consultant')}</small></div><h3>${/^https:\/\//.test(d.url||'')?`<a href="${esc(d.url)}" target="_blank" rel="noopener noreferrer">${esc(d.title)}</a>`:d.file_name?`<button class="link" data-doc-file="${d.id}">${esc(d.title)}</button>`:esc(d.title)}</h3>${d.file_name?`<p><small>${esc(d.file_name)} · ${esc(size(d.size_bytes))}</small></p>`:''}${d.project_id&&card(d.project_id)?`<p>For <button class="link" data-node="${d.project_id}">${esc(card(d.project_id).title)}</button></p>`:''}${signing(d)}${this.can('editor')?`<div class="actions"><button data-doc-edit="${d.id}">Edit</button><button data-doc-archive="${d.id}">Archive</button></div>`:''}</div>`;
+    return `<section class="section"><div class="heading"><h2>Documents</h2>${['owner','editor'].includes(this.data.role)?'<div class="track"><button data-doc-upload>Upload a file</button><button data-doc-add>Add a link</button></div>':''}</div>
       <div class="delivered">${live.map(row).join('')||'<p class="muted">No documents yet.</p>'}</div>
       ${this.can('editor')&&old.length?`<details><summary>Archived documents · ${old.length}</summary>${old.map(d=>`<div class="person"><span>${esc(d.title)}</span><small>${esc(d.archived_reason||'')}</small><span></span><button data-doc-restore="${d.id}">Restore</button></div>`).join('')}</details>`:''}</section>`;
   }
@@ -321,17 +327,44 @@ class GroundworkImprovement extends HTMLElement {
     const root=this.shadowRoot,find=id=>(this.data.documents||[]).find(d=>d.id===id);
     const act=async(b,path,body)=>{b.disabled=true;try{await this.request('POST',path,body);this.emit('refresh');}catch(e){this.error=e.message;this.render();}};
     root.querySelector('[data-doc-add]')?.addEventListener('click',()=>this.editDocument(null));
+    root.querySelector('[data-doc-upload]')?.addEventListener('click',()=>this.uploadDocument());
+    root.querySelectorAll('[data-doc-file]').forEach(b=>b.onclick=()=>this.openFile(find(b.dataset.docFile)));
+    root.querySelectorAll('[data-doc-sign]').forEach(b=>b.onclick=()=>this.signDocument(find(b.dataset.docSign)));
     root.querySelectorAll('[data-doc-edit]').forEach(b=>b.onclick=()=>this.editDocument(find(b.dataset.docEdit)));
     root.querySelectorAll('[data-doc-archive]').forEach(b=>b.onclick=()=>{const d=find(b.dataset.docArchive);act(b,'/documents/'+d.id+'/archive',{revision:d.revision});});
     root.querySelectorAll('[data-doc-restore]').forEach(b=>b.onclick=()=>{const d=find(b.dataset.docRestore);act(b,'/documents/'+d.id+'/restore',{revision:d.revision});});
   }
   editDocument(doc){
     const cards=[['','None'],...this.data.nodes.filter(n=>n.improvement.kind==='Opportunity').map(n=>[n.id,n.title])];
-    const d=this.open(`<div class="heading"><h2>${doc?'Edit document':'Add a link'}</h2><button data-close>Cancel</button></div><form>${this.field('Title','title',doc?.title||'')}${this.select('Kind','kind',doc?.kind||'plan',docKinds)}${this.field('Link (https://…)','url',doc?.url||'','url')}${this.select('For opportunity (optional)','project_id',doc?.project_id||'',cards)}<p class="note">Share the document itself so the people in this workspace can open it. The link is saved, not the file.</p><p role="alert" class="error" hidden></p><div class="actions"><button class="primary" type="submit">Save</button></div></form>`);
+    const d=this.open(`<div class="heading"><h2>${doc?'Edit document':'Add a link'}</h2><button data-close>Cancel</button></div><form>${this.field('Title','title',doc?.title||'')}${this.select('Kind','kind',doc?.kind||'plan',docKinds)}${doc?.file_name?'':this.field('Link (https://…)','url',doc?.url||'','url')}${this.select('For opportunity (optional)','project_id',doc?.project_id||'',cards)}<p class="note">Share the document itself so the people in this workspace can open it. The link is saved, not the file.</p><p role="alert" class="error" hidden></p><div class="actions"><button class="primary" type="submit">Save</button></div></form>`);
     const form=d.querySelector('form');
     form.onsubmit=async e=>{e.preventDefault();const err=form.querySelector('[role="alert"]'),btn=form.querySelector('[type="submit"]'),f=form.elements;err.hidden=true;btn.disabled=true;
-      const body={title:f.title.value,kind:f.kind.value,url:f.url.value.trim(),project_id:f.project_id.value||null};
+      const body={title:f.title.value,kind:f.kind.value,...(doc?.file_name?{}:{url:f.url.value.trim()}),project_id:f.project_id.value||null};
       try{await this.request(doc?'PATCH':'POST',doc?'/documents/'+doc.id:'/documents',doc?{...body,revision:doc.revision}:body);d.close();this.emit('refresh');}catch(e){err.textContent=e.message;err.hidden=false;btn.disabled=false;}};
+  }
+  // A file is stored privately; the host sends the form as is. Agreements are signed after upload.
+  uploadDocument(){
+    const cards=[['','None'],...this.data.nodes.filter(n=>n.improvement.kind==='Opportunity').map(n=>[n.id,n.title])];
+    const d=this.open(`<div class="heading"><h2>Upload a file</h2><button data-close>Cancel</button></div><form>${this.field('Title','title','')}${this.select('Kind','kind','agreement',docKinds)}<label>File (PDF, Word, Excel, PowerPoint, image; up to 20 MB)<input name="file" type="file" required accept=".pdf,.docx,.xlsx,.pptx,.png,.jpg,.jpeg,.webp,.txt"></label>${this.select('For opportunity (optional)','project_id','',cards)}<p class="note">The file is kept privately and opens only for people in this workspace. An agreement can be signed once it is uploaded.</p><p role="alert" class="error" hidden></p><div class="actions"><button class="primary" type="submit">Upload</button></div></form>`);
+    const form=d.querySelector('form');
+    form.onsubmit=async e=>{e.preventDefault();const err=form.querySelector('[role="alert"]'),btn=form.querySelector('[type="submit"]'),f=form.elements;err.hidden=true;btn.disabled=true;
+      const fd=new FormData();fd.append('title',f.title.value);fd.append('kind',f.kind.value);if(f.project_id.value)fd.append('project_id',f.project_id.value);fd.append('file',f.file.files[0]);
+      try{await this.request('POST','/documents/upload',fd);d.close();this.emit('refresh');}catch(e){err.textContent=this.t(e.message);err.hidden=false;btn.disabled=false;}};
+  }
+  // Files come back through the API with the viewer's own access; a window opened on the click keeps popup blockers quiet.
+  async openFile(doc){
+    const win=window.open('','_blank');
+    try{const blob=await this.request('GET','/documents/'+doc.id+'/file',undefined,'blob');const url=URL.createObjectURL(blob);
+      if(win)win.location.href=url;else{const a=document.createElement('a');a.href=url;a.download=doc.file_name;a.click();}setTimeout(()=>URL.revokeObjectURL(url),60000);}
+    catch(e){win?.close();this.error=e.message;this.render();}
+  }
+  signDocument(doc){
+    const consent='I have read this document and I sign it electronically. My typed name is my signature. / קראתי את המסמך ואני חותם/ת עליו באופן אלקטרוני. השם שהקלדתי הוא החתימה שלי.';
+    const d=this.open(`<div class="heading"><h2>Sign: ${esc(doc.title)}</h2><button data-close>Cancel</button></div><form><p><button type="button" data-open-doc>Open the document</button></p><p class="note">Signing binds your name to this exact file (fingerprint ${esc(String(doc.sha256||'').slice(0,12))}…). The date and time are recorded with it.</p>${this.field('Full name','full_name','')}<label class="opt"><span><input type="checkbox" name="consent" style="width:auto"> <bdi>${esc(consent)}</bdi></span></label><p role="alert" class="error" hidden></p><div class="actions"><button class="primary" type="submit">Sign</button></div></form>`);
+    const form=d.querySelector('form');
+    form.querySelector('[data-open-doc]').onclick=()=>this.openFile(doc);
+    form.onsubmit=async e=>{e.preventDefault();const err=form.querySelector('[role="alert"]'),btn=form.querySelector('[type="submit"]'),f=form.elements;err.hidden=true;btn.disabled=true;
+      try{await this.request('POST','/documents/'+doc.id+'/sign',{full_name:f.full_name.value,consent:f.consent.checked});d.close();this.emit('refresh');}catch(e){err.textContent=this.t(e.message);err.hidden=false;btn.disabled=false;}};
   }
   callLog(){
     const calls=this.data.call_log||[];if(!this.can('editor')||!calls.length)return '';

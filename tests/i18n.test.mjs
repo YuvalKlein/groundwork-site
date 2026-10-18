@@ -45,3 +45,8 @@ test("money follows the business currency; USD output is unchanged", () => {
   assert.equal(money(null, 'ILS'), '—');
   assert.equal(money(3.7, 'hours'), '3.7 h');
 });
+test('signing labels and backend messages read in Hebrew', () => {
+  assert.equal(heText('Business owner · 10/18/2026, 12:54:52 PM'), 'בעלת העסק · 10/18/2026, 12:54:52 PM');
+  assert.equal(heText('Tick the consent box to sign'), 'סמנו את תיבת ההסכמה כדי לחתום');
+  assert.equal(heText('Sign: הסכם ייעוץ – Blue Edge'), 'חתימה: הסכם ייעוץ – Blue Edge');
+});
