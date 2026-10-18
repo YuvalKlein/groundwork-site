@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 // Load the shared bundle's translation helpers without a browser: stub the custom-element API.
 const ctx = vm.createContext({HTMLElement: class {}, customElements: {define() {}}});
-vm.runInContext(readFileSync('client-os/improvement-view.js', 'utf8') + ';globalThis.__he={heText,HE,money};', ctx);
-const {heText, HE, money} = ctx.__he;
+vm.runInContext(readFileSync('client-os/improvement-view.js', 'utf8') + ';globalThis.__he={heText,HE,money,mdLite};', ctx);
+const {heText, HE, money, mdLite} = ctx.__he;
 test('every Hebrew entry is filled in', () => {
   for (const [en, he] of Object.entries(HE)) assert.ok(typeof he === 'string' && he.trim() && he !== en, en);
 });
@@ -49,4 +49,10 @@ test('signing labels and backend messages read in Hebrew', () => {
   assert.equal(heText('Business owner · 10/18/2026, 12:54:52 PM'), 'בעלת העסק · 10/18/2026, 12:54:52 PM');
   assert.equal(heText('Tick the consent box to sign'), 'סמנו את תיבת ההסכמה כדי לחתום');
   assert.equal(heText('Sign: הסכם ייעוץ – Blue Edge'), 'חתימה: הסכם ייעוץ – Blue Edge');
+});
+test('agreement text renders headings, lists and bold, and never raw HTML', () => {
+  assert.equal(mdLite('# Title'), '<h3>Title</h3>');
+  assert.equal(mdLite('- one\n- two'), '<ul><li>one</li><li>two</li></ul>');
+  assert.equal(mdLite('Pay **$2,500** now'), '<p>Pay <b>$2,500</b> now</p>');
+  assert.equal(mdLite('<img src=x onerror=alert(1)>'), '<p>&lt;img src=x onerror=alert(1)&gt;</p>');
 });
