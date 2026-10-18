@@ -96,7 +96,10 @@ export async function mountConsultant(root,api,open){
       box.querySelector('[data-assign]')?.addEventListener('click',e=>{const to=box.querySelector('[data-to]').value;if(!to){msg.textContent='Choose a client first.';return;}act(e.currentTarget,()=>api(base+'/assign',{method:'POST',body:JSON.stringify({workspace_id:to})}),msg);});
       box.querySelector('[data-ignore]')?.addEventListener('click',e=>act(e.currentTarget,()=>api(base+'/ignore',{method:'POST',body:JSON.stringify({reason:box.querySelector('[data-reason]').value})}),msg));});
     root.querySelectorAll('[data-source]').forEach(box=>{const id=box.dataset.source,msg=box.querySelector('[data-msg]'),base=`/projects/improvement/calls/sources/${id}`;
-      box.querySelector('[data-sync]').onclick=e=>act(e.currentTarget,()=>api(base+'/sync',{method:'POST'}),msg);
+      // Checking runs in the background: say so, then refresh once it has had time to read anything new.
+      box.querySelector('[data-sync]').onclick=async e=>{const b=e.currentTarget;b.disabled=true;msg.textContent='';
+        try{await api(base+'/sync',{method:'POST'});msg.style.color='#5c776d';msg.textContent='Checking… new meetings appear here or on their client\'s board within a minute.';setTimeout(()=>reload().catch(()=>{}),45000);}
+        catch(x){msg.textContent=x.message;b.disabled=false;}};
       box.querySelector('[data-pause]').onclick=e=>act(e.currentTarget,()=>api(base,{method:'PATCH',body:JSON.stringify({paused:!!e.currentTarget.dataset.pause})}),msg);
       box.querySelector('[data-disconnect]').onclick=e=>act(e.currentTarget,()=>api(base,{method:'DELETE'}),msg);});
     const connect=root.querySelector('[data-connect]');
