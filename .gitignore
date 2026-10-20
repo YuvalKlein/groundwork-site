@@ -6,3 +6,8 @@ video/
 
 # Generated static deployment
 dist/
+
+# Local Claude outputs and client prompts. Never commit them: this repo is public.
+Claude outputs/
+blue-edge-*-prompt.md
+blue-edge-design.zip
