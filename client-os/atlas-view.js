@@ -65,7 +65,7 @@ class GroundworkAtlas extends HTMLElement {
         !data
           ? '<div class="empty">Sign in and select a workspace to view its anatomy.</div>'
           : !records.length
-            ? '<div class="empty"><strong>Your map starts here.</strong><p>No anatomy records are available in this view. Connectors and guided discovery are planned, not yet available.</p></div>'
+            ? '<div class="empty"><strong>Your map starts here.</strong><p>No descriptive anatomy records are available in this view. Authorized source observations appear separately below.</p></div>'
             : `<p>${safe(data.workspace?.name || "Workspace")} · ${records.length} descriptive record(s). ${data.compatibility ? "Compatibility view: Atlas endpoint unavailable (404); using authorized board records." : ""}</p>
         <p>Model reference: Business Anatomy v0.1.1 clarification candidate · Holon Schema 0.1 · human review pending. Each record retains its own versions. Current records only; historical state and observation date are not inferred.</p>
         <button data-mode="graph" aria-pressed="${this.mode === "graph"}">Map</button> <button data-mode="cards" aria-pressed="${this.mode === "cards"}">Cards</button>
