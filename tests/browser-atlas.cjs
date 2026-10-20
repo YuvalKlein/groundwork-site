@@ -66,6 +66,7 @@ const server = http.createServer((req, res) => {
       ],
       unknowns: [{ question: "Synthetic research gap" }],
       sources: [],
+      observations: [{id:"synthetic-observation",name:"Synthetic visited rows",value:6,unit:"rows",unknown_count:1,window:{from:"2026-10-01",to:"2026-10-20",timezone:"America/Chicago"},provenance:{refreshed_at:null},gaps:["Synthetic only"]}],
     };
     let mode = "ok",
       calls = [];
@@ -118,6 +119,7 @@ const server = http.createServer((req, res) => {
     await page.reload();
     await page.locator("groundwork-atlas svg g").first().waitFor();
     assert.equal(await page.locator("groundwork-atlas svg g").count(), 24);
+    assert.match(await page.locator('groundwork-atlas section[aria-label="Source observations"]').innerText(), /6 rows/);
     assert.equal(await page.locator("groundwork-atlas svg line").count(), 1);
     await page.locator("groundwork-atlas svg g").first().focus();
     await page.keyboard.press("Enter");
@@ -125,9 +127,9 @@ const server = http.createServer((req, res) => {
       await page.locator("groundwork-atlas .detail").innerText(),
       /Intake <script>unsafe<\/script>/,
     );
-    await page.locator("groundwork-atlas summary").click();
+    await page.locator("groundwork-atlas .detail summary").click();
     assert.match(
-      await page.locator("groundwork-atlas pre").innerText(),
+      await page.locator("groundwork-atlas .detail pre").innerText(),
       /DOCUMENTED/,
     );
     assert.equal(await page.locator("groundwork-atlas script").count(), 0);
@@ -152,6 +154,7 @@ const server = http.createServer((req, res) => {
     await page.locator("#refresh").click();
     await page.locator("#summary").filter({ hasText: "403" }).waitFor();
     assert.equal(await page.locator("groundwork-atlas [data-id]").count(), 0);
+    assert.equal(await page.locator('groundwork-atlas section[aria-label="Source observations"] article').count(), 0);
     mode = "ok";
     await page.goto(origin + "/client-os/");
     await page.locator("#show-atlas").waitFor();
@@ -174,6 +177,7 @@ const server = http.createServer((req, res) => {
     );
     assert.equal(await page.locator("#error").textContent(), "denied");
     assert.equal(await page.locator("groundwork-atlas [data-id]").count(), 0);
+    assert.equal(await page.locator('groundwork-atlas section[aria-label="Source observations"] article').count(), 0);
     assert.deepEqual(errors, []);
     console.log(
       "PASS: browser anonymous access, map/cards, 24-node height, keyboard selection, escaped text, object provenance, research gaps, filters, 404 fallback, 403 clearing, embedded board switching. Synthetic fixture only.",

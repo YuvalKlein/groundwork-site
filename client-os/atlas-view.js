@@ -1,3 +1,4 @@
+import { observationsMarkup } from './atlas-observations.mjs';
 import { list, targetId, visibleGraph, fromBoard } from "./atlas-data.mjs";
 /* Groundwork Atlas: read-only, workspace-scoped descriptive anatomy.
  * Uses the existing Groundwork API board.anatomy. No client-specific sources or arithmetic.
@@ -102,6 +103,7 @@ class GroundworkAtlas extends HTMLElement {
           .join("") ||
         "<li>No gaps supplied; this does not prove complete coverage.</li>"
       }</ul><p>Connector registry: ${list(data.sources).length} records supplied. An empty registry does not prove that business integrations are disconnected.</p>`;
+    this.shadowRoot.innerHTML += observationsMarkup(data);
     this.shadowRoot.querySelectorAll("[data-mode]").forEach(
       (btn) =>
         (btn.onclick = () => {
