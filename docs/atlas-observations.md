@@ -26,6 +26,7 @@ Authentication continuation (21 October 2026): the backend draft replaces ambien
 credentials with a signed aggregate-only Cloud Run transport, an attached dedicated reader
 identity, and optional verified-user narrowing in addition to workspace roles. No credential,
 private measurement or new authentication logic is added here. The exact live aggregate was
-reconciled using an operator account; runtime service-account execution and authenticated remote
-preview remain outstanding. Shared dashboard credentials are not treated as individual users.
+reconciled using an operator account; dedicated service-account identity and aggregate execution were subsequently verified.
+Authenticated remote preview remains outstanding: approval review blocked creation of the isolated
+Cloud Run preview, its dedicated signing secret and secret-scoped IAM binding. Shared dashboard credentials are not treated as individual users.
 See backend `docs/groundwork/atlas-authentication.md` for the trust boundary and verification steps.
