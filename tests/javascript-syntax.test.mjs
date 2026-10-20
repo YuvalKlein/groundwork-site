@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 function scripts(directory) {
   return readdirSync(directory,{withFileTypes:true}).flatMap(entry=>{
     const path=join(directory,entry.name);
-    return entry.isDirectory()?scripts(path):entry.name.endsWith('.js')?[path]:[];
+    return entry.isDirectory()?scripts(path):/\.m?js$/.test(entry.name)?[path]:[];
   });
 }
 test('every shipped JavaScript file parses, including pages outside Client OS',()=>{
