@@ -27,6 +27,11 @@ credentials with a signed aggregate-only Cloud Run transport, an attached dedica
 identity, and optional verified-user narrowing in addition to workspace roles. No credential,
 private measurement or new authentication logic is added here. The exact live aggregate was
 reconciled using an operator account; dedicated service-account identity and aggregate execution were subsequently verified.
-Authenticated remote preview remains outstanding: approval review blocked creation of the isolated
-Cloud Run preview, its dedicated signing secret and secret-scoped IAM binding. Shared dashboard credentials are not treated as individual users.
+Preview verified (21 October 2026, with Yuval's approval): the isolated Cloud Run preview reader, its
+dedicated signing secret and secret-scoped accessor exist. This UI, served locally against the PR backend,
+which signs to that preview, showed live measured cards only to the allowlisted consultant. Owner, reader,
+non-allowlisted editor and shared-credential views showed none; another tenant was refused. Switching
+workspace and signing out cleared the panel. The Vercel preview of this PR still points at the Railway
+Dev backend, which has no Atlas configuration, so it shows no observations. Shared dashboard credentials
+are not treated as individual users.
 See backend `docs/groundwork/atlas-authentication.md` for the trust boundary and verification steps.
