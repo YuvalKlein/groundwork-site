@@ -58,7 +58,7 @@ export async function mountOnboarding(root,api,w,opts={}){
     // The workspace endpoint answers members only; the consultant (not a member) finds the retainer in his client list.
     engagement=admin?(await api('/projects/improvement/consultant/clients').catch(()=>[])).find(c=>c.workspace_id===w)||null:await api(`${W}${w}/engagement`).catch(()=>null);
     if(!engagement&&!admin)return false;
-    [agreements,billing,tasks]=await Promise.all([api(`${W}${w}/agreements`).catch(()=>[]),api(`${W}${w}/billing`).catch(()=>null),api(`${W}${w}/access-tasks`).catch(()=>[])]);
+    [agreements,billing,tasks]=await Promise.all([admin?api('/projects/improvement/consultant/agreements').then(all=>all.filter(g=>g.workspace_id===w)).catch(()=>[]):api(`${W}${w}/agreements`).catch(()=>[]),api(`${W}${w}/billing`).catch(()=>null),api(`${W}${w}/access-tasks`).catch(()=>[])]);
     if(admin)consultantClient=engagement;
     return true;
   };
