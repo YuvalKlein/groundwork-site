@@ -1,8 +1,14 @@
 import './improvement-view.js';
 import {captureMagicLink, verifyMagicLink, SESSION_KEY} from './auth.js';
 import {mountConsultant} from './consultant.js';
+import {mountOnboarding,mountRetainerClients} from './onboarding-view.js';
 const config=window.GROUNDWORK_CONFIG,el=document.querySelector('groundwork-improvement'),err=document.querySelector('#error');
 let token='',workspace='';
+// A link to onboarding (`?ws=…&view=onboarding`) and Stripe's return (`&bank_session=cs_…`); read before the URL is scrubbed.
+const link=new URLSearchParams(window.groundworkCallback||'');
+const want={ws:link.get('ws')||'',bankSession:/^cs_[A-Za-z0-9_]{6,200}$/.test(link.get('bank_session')||'')?link.get('bank_session'):''};
+const onboarding=document.createElement('section');onboarding.id='onboarding';onboarding.hidden=true;el.before(onboarding);
+const retainers=document.createElement('section');retainers.id='retainers';retainers.hidden=true;
 const say=s=>window.groundworkShell?.t(s)??s;
 const report=e=>{err.textContent=say(e.message||String(e));};
 // `as`: 'blob' returns a file's bytes. A FormData body (an upload) goes as multipart, so no JSON content type.
@@ -16,18 +22,21 @@ async function api(path,options={},as){
 // The page around the board follows the workspace's language once signed in.
 async function load(){const board=await api('/projects/improvement/workspaces/'+workspace);el.board=board;window.groundworkShell?.apply(board.workspace?.locale==='he'?'he':'en');const roleLabel=document.querySelector('#workspace-role');const roles={editor:['Consultant','יועץ'],owner:['Business owner','בעל העסק'],reader:['Viewer','צופה']};const label=roles[board.role];roleLabel.hidden=!label;roleLabel.textContent=label?(board.workspace?.locale==='he'?label[1]:label[0]):'';}
 // The consultant (Groundwork admin) lands on "All clients"; a business owner straight on their own board.
-const home=document.querySelector('#consultant');
-function showBoard(on){el.hidden=!on;home.hidden=on;if(!on){document.querySelector('#workspace-role').hidden=true;window.groundworkShell?.apply();}}
+const home=document.querySelector('#consultant');home.after(retainers);
+function showBoard(on){el.hidden=!on;home.hidden=on;retainers.hidden=on||!retainers.childElementCount;if(!on)onboarding.hidden=true;if(!on){document.querySelector('#workspace-role').hidden=true;window.groundworkShell?.apply();}}
 async function start(){
  const workspaces=await api('/projects/improvement/workspaces');
  document.querySelector('#login').hidden=true;document.querySelector('#logout').hidden=false;document.querySelector('#picker').hidden=false;
  const select=document.querySelector('#workspaces');select.replaceChildren(...workspaces.map(w=>new Option(w.name,w.id)));
- const openClient=id=>{if(![...select.options].some(o=>o.value===id))select.add(new Option(id,id));select.value=id;workspace=id;showBoard(true);load().catch(report);};
+ let admin=false;
+ // The onboarding checklist sits above the board while the workspace has a retainer; nothing shows when it has none.
+ const showOnboarding=id=>{onboarding.hidden=true;onboarding.replaceChildren();mountOnboarding(onboarding,api,id,{admin,bankSession:id===want.ws?want.bankSession:''}).then(on=>{onboarding.hidden=!on;if(on&&id===want.ws)onboarding.scrollIntoView();}).catch(report);};
+ const openClient=id=>{if(![...select.options].some(o=>o.value===id))select.add(new Option(id,id));select.value=id;workspace=id;showBoard(true);showOnboarding(id);load().catch(report);};
  const consultant=await mountConsultant(home,api,openClient).catch(e=>{report(e);return false;});
- select.onchange=()=>{if(!select.value){showBoard(false);return;}workspace=select.value;showBoard(true);load().catch(report);};
- if(consultant){select.prepend(new Option(say('All clients'),''));select.value='';showBoard(false);return;}
+ select.onchange=()=>{if(!select.value){showBoard(false);return;}workspace=select.value;showBoard(true);showOnboarding(workspace);load().catch(report);};
+ if(consultant){admin=true;await mountRetainerClients(retainers,api,openClient).catch(report);select.prepend(new Option(say('All clients'),''));select.value='';showBoard(false);if(want.ws)openClient(want.ws);return;}
  if(!workspaces.length){err.textContent=say('No workspace has been granted to this account yet.');return;}
- workspace=workspaces[0].id;showBoard(true);await load();
+ workspace=(workspaces.find(w=>w.id===want.ws)||workspaces[0]).id;select.value=workspace;showBoard(true);showOnboarding(workspace);await load();
 }
 document.querySelector('#login').onsubmit=async e=>{e.preventDefault();try{await api('/platform/auth/magic-link',{method:'POST',body:JSON.stringify({email:new FormData(e.target).get('email'),app_slug:config.appSlug})});err.textContent=say('Check your email for your sign-in link.');}catch(e){report(e);}};
 document.querySelector('#logout').onclick=()=>{sessionStorage.removeItem('groundwork-session');location.reload();};
