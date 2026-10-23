@@ -51,7 +51,7 @@ const CSS=`<style>
  */
 export async function mountOnboarding(root,api,w,opts={}){
   const admin=!!opts.admin;
-  let engagement,agreements=[],billing,tasks=[],consultantClient=null,msg='';
+  let engagement,agreements=[],billing,tasks=[],consultantClient=null,notes=null,aiKey=null,msg='';
   if(opts.bankSession){
     try{await api(`${W}${w}/billing/checkout/${encodeURIComponent(opts.bankSession)}/complete`,{method:'POST'});msg='Your bank is connected. Thank you.';}
     catch(e){msg=e.message;}
@@ -60,6 +60,7 @@ export async function mountOnboarding(root,api,w,opts={}){
     // The workspace endpoint answers members only; the consultant (not a member) finds the retainer in his client list.
     engagement=admin?(await api('/projects/improvement/consultant/clients').catch(()=>[])).find(c=>c.workspace_id===w)||null:await api(`${W}${w}/engagement`).catch(()=>null);
     if(!engagement&&!admin)return false;
+    [notes,aiKey]=await Promise.all([api(`${W}${w}/call-sources`).catch(()=>null),api(`${W}${w}/ai-key`).catch(()=>null)]);
     [agreements,billing,tasks]=await Promise.all([admin?api('/projects/improvement/consultant/agreements').then(all=>all.filter(g=>g.workspace_id===w)).catch(()=>[]):api(`${W}${w}/agreements`).catch(()=>[]),api(`${W}${w}/billing`).catch(()=>null),api(`${W}${w}/access-tasks`).catch(()=>[])]);
     if(admin)consultantClient=engagement;
     return true;
@@ -84,9 +85,10 @@ export async function mountOnboarding(root,api,w,opts={}){
     let body;
     if(!b)body='<p class="muted">Billing is not available yet.</p>';
     else if(connected)body=`<p>Bank: <b>${esc(b.bank.bank_name||'Bank account')}</b> ••••${esc(b.bank.last4||'')} <small>· connected ${day(b.bank.connected_at)}</small></p>`;
+    else if(b.bank.pending_verification)body=`<p><b>Almost done.</b> Stripe is sending two small test deposits to the account you entered (1–2 business days). Confirm their amounts with the link in Stripe's email. The deposit is debited only after that.</p>`;
     else if(!b.agreement_signed)body='<p class="muted">Sign the agreement first. Then connect the US bank account the retainer is debited from.</p>';
     else if(!b.configured)body='<p class="muted">Bank connection opens shortly. Please check back later.</p>';
-    else body=admin?'<p class="muted">Waiting for the client to connect a bank.</p>':`<p>Connect the US business bank account the retainer is debited from. Stripe, our payment provider, verifies it with your bank's own sign-in; we never see your bank sign-in, and we keep only the bank's name and the last 4 digits.</p>
+    else body=admin?'<p class="muted">Waiting for the client to connect a bank.</p>':`<p>Connect the US business bank account the retainer is debited from. Stripe, our payment provider, connects it: pick your bank and sign in to it, or enter the routing and account numbers (Stripe then confirms them with two small test deposits). We never see your bank sign-in, and we keep only the bank's name and the last 4 digits.</p>
       <div class="row"><button class="primary" data-bank>Connect bank and pay the deposit</button><span class="err" data-out></span></div>`;
     const deposit=engagement?Math.floor(engagement.retainer_cents/2):null;
     const charges=(b?.charges||[]).map(c=>`<tr><td>${c.kind==='deposit'?'Deposit':c.kind==='monthly'?'Monthly retainer':'Final'}</td><td>${usd(c.amount_cents)}</td><td>${esc(CHARGE[c.status]||c.status)}${c.failure_message?` <span class="err">${esc(c.failure_message)}</span>`:''}</td><td>${day(c.created_at)}</td><td>${/^https:\/\//.test(c.hosted_invoice_url||'')?`<a href="${esc(c.hosted_invoice_url)}" target="_blank" rel="noopener noreferrer">Invoice</a>`:''}</td></tr>`).join('');
@@ -95,7 +97,29 @@ export async function mountOnboarding(root,api,w,opts={}){
       ${charges?`<table><tr><th>Charge</th><th>Amount</th><th>Status</th><th>Date</th><th></th></tr>${charges}</table>`:''}
       ${b?.monthly_scheduled?`<p class="ok"><small>Monthly debits are scheduled from ${ymd(b.first_monthly_date)}.</small></p>`:''}</div>`;
   }
-  function tasksStep(){
+  function noteTakerStep(n){
+    if(!notes)return '';
+    const live=(notes.sources||[]).filter(x=>!x.paused);
+    const NAME={fathom:'Fathom',fireflies:'Fireflies'};
+    const body=live.length?live.map(x=>`<p>${esc(NAME[x.provider]||x.provider)} <small>· key …${esc(x.credential_hint)} · ${esc((notes.scopes||[]).find(o=>o.key===x.scope)?.label||x.scope)}</small></p>`).join('')
+      :`<p>Connect the note taker you use for meetings, so the meetings you choose reach your Groundwork board. Fathom: Settings → API Access. Fireflies: Settings → Developer settings. The key is checked, stored encrypted and never shown again.</p>
+      <form data-notes><div class="row"><label>Note taker <select name="provider">${(notes.providers||['fathom','fireflies']).map(p=>`<option value="${esc(p)}">${esc(NAME[p]||p)}</option>`).join('')}</select></label>
+      <label>Which meetings <select name="scope">${(notes.scopes||[]).map(o=>`<option value="${esc(o.key)}" ${o.key==='with_consultant'?'selected':''}>${esc(o.label)}</option>`).join('')}</select></label></div>
+      <label>API key <input name="api_key" type="password" autocomplete="off" required dir="ltr" size="50"></label>
+      <div class="row"><button class="primary">Connect note taker</button><span class="err" data-out></span></div></form>
+      <small>No note taker? Skip this step; Groundwork records the meetings it joins.</small>`;
+    return `<div class="step ${live.length?'done':''}" data-step="notes"><h3>${n}. Connect your meeting note taker <span class="badge state">${live.length?'Done':'Optional'}</span></h3>${body}</div>`;
+  }
+  function aiKeyStep(n){
+    if(!engagement||engagement.ai_mode!=='own_key'||!aiKey)return '';
+    const body=aiKey.connected?`<p>Claude key …${esc(aiKey.hint)} <small>· connected ${day(aiKey.connected_at)}</small></p>${admin?'':'<div class="row"><button data-ai-remove>Remove key</button><span class="err" data-out></span></div>'}`
+      :admin?'<p class="muted">Waiting for the client to connect their Claude key.</p>'
+      :`<p>Your plan runs Groundwork's AI on your own Anthropic (Claude) account, so your data and its cost stay yours. Create a key at console.anthropic.com → API keys, then paste it here. It is checked with Anthropic, stored encrypted, and never shown again.</p>
+      <form data-ai><label>Claude API key <input name="api_key" type="password" autocomplete="off" required dir="ltr" size="50" placeholder="sk-ant-…"></label>
+      <div class="row"><button class="primary">Connect key</button><span class="err" data-out></span></div></form>`;
+    return `<div class="step ${aiKey.connected?'done':''}" data-step="ai"><h3>${n}. Connect your AI key <span class="badge state">${aiKey.connected?'Done':'To do'}</span></h3>${body}</div>`;
+  }
+  function tasksStep(n){
     const open=tasks.filter(t=>t.status!=='verified').length,allDone=tasks.length&&!open;
     const item=t=>`<div class="task" data-task="${esc(t.id)}"><b>${esc(t.system)}</b> · ${esc(t.title)} <span class="badge">${esc(TASK[t.status]||t.status)}</span>
       <pre>${esc(t.instructions)}</pre>
@@ -103,7 +127,7 @@ export async function mountOnboarding(root,api,w,opts={}){
       ${t.client_note?`<small>Note: ${esc(t.client_note)}</small>`:''}
       ${!admin&&['published','reopened'].includes(t.status)?`<div class="row"><input data-note placeholder="Note (optional)" maxlength="1000"><button class="primary" data-done>Mark done</button><span class="err" data-out></span></div>`:''}
       ${admin?`<div class="row">${t.status!=='verified'?'<button class="primary" data-verify>Verified</button>':''}${['client_done','verified'].includes(t.status)?'<input data-note placeholder="What is missing (to reopen)"><button data-reopen>Reopen</button>':''}<button data-remove>Remove</button><span class="err" data-out></span></div>`:''}</div>`;
-    return `<div class="step ${allDone?'done':''}" data-step="tasks"><h3>3. Give Groundwork access <span class="badge state">${tasks.length?`${tasks.length-open} of ${tasks.length} verified`:'None yet'}</span></h3>
+    return `<div class="step ${allDone?'done':''}" data-step="tasks"><h3>${n}. Give Groundwork access <span class="badge state">${tasks.length?`${tasks.length-open} of ${tasks.length} verified`:'None yet'}</span></h3>
       <p class="muted">Each step invites our email through the system's own invite feature. We will never ask for a password, an API key or a sign-in code; if anyone does, don't send it.</p>
       ${tasks.map(item).join('')||'<p class="muted">Your access steps will appear here.</p>'}${admin?adminTaskForm():''}</div>`;
   }
@@ -118,11 +142,13 @@ export async function mountOnboarding(root,api,w,opts={}){
       <label>Instructions (must name the access email; never ask for a password, key or code)<textarea name="instructions" required maxlength="4000"></textarea></label>
       <div class="row"><button>Add task</button><span class="err" data-out></span></div></form></details>`;
   }
+  // Optional steps are numbered after the two fixed ones; the access step keeps its own heading.
+  function extraSteps(){let n=3;const a=noteTakerStep(n);if(a)n++;const b=aiKeyStep(n);if(b)n++;return {html:a+b,next:n};}
   function draw(){
     root.innerHTML=CSS+`<div class="gw-onb"><h2>Welcome${engagement?.business_name?', '+esc(engagement.business_name):''}</h2>
-      <p class="muted">Three steps to start. Do them in any order that works; this page saves your progress.</p>
+      <p class="muted">A few steps to start. Do them in any order that works; this page saves your progress.</p>
       ${msg?`<p class="${/connected/.test(msg)?'ok':'err'}" role="status">${esc(msg)}</p>`:''}
-      ${engagement?agreementStep()+bankStep():'<p class="muted">No retainer on this workspace.</p>'}${tasksStep()}</div>`;
+      ${engagement?agreementStep()+bankStep():'<p class="muted">No retainer on this workspace.</p>'}${(x=>x.html+tasksStep(x.next))(extraSteps())}</div>`;
     wire();
   }
   function wire(){
@@ -131,6 +157,12 @@ export async function mountOnboarding(root,api,w,opts={}){
     const bank=root.querySelector('[data-bank]');
     if(bank)bank.onclick=async e=>{const b=e.currentTarget,out=root.querySelector('[data-step="bank"] [data-out]');b.disabled=true;out.textContent='';
       try{const {url}=await api(`${W}${w}/billing/bank-checkout`,{method:'POST'});if(!/^https:\/\/checkout\.stripe\.com\//.test(url))throw new Error('Unexpected payment page');location.assign(url);}catch(x){out.textContent=x.message;b.disabled=false;}};
+    const nf=root.querySelector('[data-notes]');
+    if(nf)nf.onsubmit=ev=>{ev.preventDefault();const f=nf.elements;act(nf.querySelector('button'),()=>api(`${W}${w}/call-sources`,{method:'POST',body:JSON.stringify({provider:f.provider.value,scope:f.scope.value,api_key:f.api_key.value.trim()})}),nf.querySelector('[data-out]'));};
+    const af=root.querySelector('[data-ai]');
+    if(af)af.onsubmit=ev=>{ev.preventDefault();act(af.querySelector('button'),()=>api(`${W}${w}/ai-key`,{method:'PUT',body:JSON.stringify({provider:'anthropic',api_key:af.elements.api_key.value.trim()})}),af.querySelector('[data-out]'));};
+    const ar=root.querySelector('[data-ai-remove]');
+    if(ar)ar.onclick=e=>confirm('Remove your Claude key? Groundwork AI work stops until you connect one again.')&&act(e.currentTarget,()=>api(`${W}${w}/ai-key`,{method:'DELETE'}),root.querySelector('[data-step="ai"] [data-out]'));
     root.querySelectorAll('[data-task]').forEach(box=>{const id=box.dataset.task,out=box.querySelector('[data-out]'),note=()=>box.querySelector('[data-note]')?.value.trim();
       box.querySelector('[data-done]')?.addEventListener('click',e=>act(e.currentTarget,()=>api(`${W}${w}/access-tasks/${id}/done`,{method:'POST',body:JSON.stringify(note()?{note:note()}:{})}),out));
       box.querySelector('[data-verify]')?.addEventListener('click',e=>act(e.currentTarget,()=>api(`/projects/improvement/consultant/access-tasks/${id}/verify`,{method:'POST',body:'{}'}),out));
