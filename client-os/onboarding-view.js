@@ -12,6 +12,8 @@ const CONSENT='I have read this agreement and I sign it electronically. My typed
 const CHARGE={scheduled:'Scheduled',processing:'Processing · bank debits take about 4 business days',paid:'Paid',failed:'Failed',void:'Void'};
 const TASK={published:'To do',client_done:'Done · waiting for Groundwork to check',verified:'Verified',reopened:'Needs another look'};
 const W='/projects/improvement/workspaces/';
+/** Who the agreement names as the Consultant. Groundwork bills through PLAY.FUN LLC (2026-10-23). */
+const ENTITY='PLAY.FUN LLC, a Florida limited liability company doing business as Groundwork';
 
 /** The standard access tasks. `{email}` is the consultant's access email for this client. No step ever asks for a secret. */
 export const PRESETS=[
@@ -163,7 +165,7 @@ export async function mountRetainerClients(root,api,open){
     root.innerHTML=CSS+`<div class="gw-onb" style="max-width:1300px"><h2>Retainer clients (ACH) · ${clients.length}</h2>
       <table><tr><th>Client</th><th>Retainer</th><th>Start</th><th>Status</th><th>Agreement</th><th></th></tr>
       ${clients.map(c=>`<tr data-c="${esc(c.id)}"><td><b>${esc(c.business_name)}</b><br><small>${esc(c.contact_name)} · ${esc(c.contact_email||'')}</small></td><td>${usd(c.retainer_cents)}/mo</td><td>${ymd(c.start_date)}</td><td>${esc(c.status)}</td>
-        <td>${esc(c.agreement?.status||'—')}${c.agreement?.status==='draft'?`<br><button data-send>Send without email</button>`:''}</td>
+        <td>${esc(c.agreement?.status||'—')}${c.agreement?.status==='draft'?`<br><button data-send>Send without email</button>`:''}${['draft','sent'].includes(c.agreement?.status)?`<br><button data-reissue>Reissue naming…</button>`:''}${agr(c)?.terms?.consultant_name?`<br><small>Consultant: ${esc(agr(c).terms.consultant_name)}</small>`:''}</td>
         <td><button class="primary" data-open-onb="${esc(c.workspace_id)}">Onboarding</button><br><button data-copy="${esc(portal(c.workspace_id))}">Copy client link</button><br><span class="err" data-out></span></td></tr>`).join('')}</table>
       <details style="margin-top:10px"><summary><b>New retainer client</b></summary><form data-new>
         <div class="row"><label>Business name <input name="business_name" required maxlength="200"></label><label>Legal name <input name="legal_name" maxlength="200" placeholder="same as business"></label></div>
@@ -171,16 +173,19 @@ export async function mountRetainerClients(root,api,open){
         <div class="row"><label>Tier <input name="tier" required value="Retainer" maxlength="60"></label><label>Monthly retainer (USD) <input name="retainer" type="number" min="1" step="0.01" required></label>
         <label>Start date (day 1–28) <input name="start_date" type="date" required></label><label>AI <select name="ai_mode"><option value="own_key">Client's own key</option><option value="included">Included</option></select></label></div>
         <label>Governing law <input name="governing_law" required value="the State of Texas" size="40"></label>
+        <label>Consultant (who the agreement names) <input name="consultant_name" required value="${esc(ENTITY)}" size="70"></label>
         <small>Creates the business, the workspace, the contact as owner, the engagement and a draft ACH agreement. Nothing is emailed.</small>
         <div class="row"><button class="primary">Create client</button><span class="err" data-out></span></div></form></details></div>`;
     root.querySelectorAll('[data-c]').forEach(row=>{const c=clients.find(x=>x.id===row.dataset.c),out=row.querySelector('[data-out]');
       row.querySelector('[data-open-onb]').onclick=()=>open(c.workspace_id,c.business_name);
       row.querySelector('[data-copy]').onclick=async e=>{try{await navigator.clipboard.writeText(e.currentTarget.dataset.copy);out.className='ok';out.textContent='Copied';}catch{out.textContent=e.currentTarget.dataset.copy;}};
+      row.querySelector('[data-reissue]')?.addEventListener('click',e=>{const name=prompt('The agreement will name this consultant. The current unsigned agreement is cancelled and a new draft is made; nothing is emailed.',ENTITY);
+        if(name&&name.trim())act(e.currentTarget,()=>api(`/projects/improvement/consultant/clients/${c.id}/agreement`,{method:'POST',body:JSON.stringify({consultant_name:name.trim()})}),out);});
       row.querySelector('[data-send]')?.addEventListener('click',e=>{const g=agr(c);if(!g){out.textContent='Agreement not found';return;}
         confirm('Freeze and send this agreement without emailing the client? The text can no longer change. You send the link yourself.')&&act(e.currentTarget,()=>api(`/projects/improvement/consultant/agreements/${g.id}/send`,{method:'POST',body:JSON.stringify({revision:g.revision,notify:false})}),out);});});
     const form=root.querySelector('[data-new]');
     form.onsubmit=ev=>{ev.preventDefault();const f=form.elements;act(form.querySelector('button'),()=>api('/projects/improvement/consultant/clients',{method:'POST',body:JSON.stringify({business_name:f.business_name.value,...(f.legal_name.value.trim()?{legal_name:f.legal_name.value.trim()}:{}),
-      contact_name:f.contact_name.value,contact_email:f.contact_email.value,tier:f.tier.value,retainer_cents:Math.round(Number(f.retainer.value)*100),start_date:f.start_date.value,ai_mode:f.ai_mode.value,governing_law:f.governing_law.value})}),form.querySelector('[data-out]'));};
+      contact_name:f.contact_name.value,contact_email:f.contact_email.value,tier:f.tier.value,retainer_cents:Math.round(Number(f.retainer.value)*100),start_date:f.start_date.value,ai_mode:f.ai_mode.value,governing_law:f.governing_law.value,consultant_name:f.consultant_name.value})}),form.querySelector('[data-out]'));};
   }
   draw();
   return true;
