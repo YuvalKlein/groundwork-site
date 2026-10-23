@@ -78,7 +78,8 @@ export async function mountOnboarding(root,api,w,opts={}){
       ${(g.signatures||[]).map(x=>`<p><span class="badge">Signed</span> ${esc(x.signer_name)} <small>· ${esc(x.side||x.signer_role||'')} · ${new Date(x.signed_at).toLocaleString()}</small></p>`).join('')}
       ${g.status==='sent'&&!admin?`<div class="row"><label>Your full name <input data-sign-name autocomplete="name"></label></div><label class="row"><input type="checkbox" data-sign-consent style="width:auto"> ${esc(CONSENT)}</label><div class="row"><button class="primary" data-sign="${esc(g.id)}">Sign the agreement</button><span class="err" data-out></span></div>`:''}
       ${g.status==='sent'&&admin?'<p class="muted">Waiting for the client to sign.</p>':''}`;
-    return `<div class="step ${signed?'done':''}" data-step="agreement"><h3>1. Sign the agreement <span class="badge state">${signed?'Done':'To do'}</span></h3>${body}</div>`;
+    const w9=`<div class="row"><button data-w9>Download our W-9 (PDF)</button><small>For your records and your 1099.</small><span class="err" data-out-w9></span></div>`;
+    return `<div class="step ${signed?'done':''}" data-step="agreement"><h3>1. Sign the agreement <span class="badge state">${signed?'Done':'To do'}</span></h3>${body}${w9}</div>`;
   }
   function bankStep(){
     const b=billing,connected=b?.bank?.connected;
@@ -152,6 +153,10 @@ export async function mountOnboarding(root,api,w,opts={}){
     wire();
   }
   function wire(){
+    const w9=root.querySelector('[data-w9]');
+    if(w9)w9.onclick=async()=>{const out=root.querySelector('[data-out-w9]');out.textContent='';
+      try{const blob=await api(admin?'/projects/improvement/consultant/files/w9':`${W}${w}/w9`,{},'blob');const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='W-9.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),10000);}
+      catch(e){out.textContent=/not found/i.test(e.message)?'Not available yet.':e.message;}};
     const sign=root.querySelector('[data-sign]');
     if(sign)sign.onclick=e=>{const box=root.querySelector('[data-step="agreement"]');act(e.currentTarget,()=>api(`${W}${w}/agreements/${sign.dataset.sign}/sign`,{method:'POST',body:JSON.stringify({full_name:box.querySelector('[data-sign-name]').value,consent:box.querySelector('[data-sign-consent]').checked})}),box.querySelector('[data-out]'));};
     const bank=root.querySelector('[data-bank]');
@@ -187,9 +192,9 @@ export async function mountOnboarding(root,api,w,opts={}){
  * the onboarding link to copy. `open(workspaceId)` shows that client's onboarding page.
  */
 export async function mountRetainerClients(root,api,open){
-  let clients=[],agreements=[];
+  let clients=[],agreements=[],w9=null;
   const portal=w=>`${location.origin}/client-os/?ws=${encodeURIComponent(w)}&view=onboarding`;
-  const load=async()=>{[clients,agreements]=await Promise.all([api('/projects/improvement/consultant/clients'),api('/projects/improvement/consultant/agreements').catch(()=>[])]);};
+  const load=async()=>{let files;[clients,agreements,files]=await Promise.all([api('/projects/improvement/consultant/clients'),api('/projects/improvement/consultant/agreements').catch(()=>[]),api('/projects/improvement/consultant/files').catch(()=>[])]);w9=(files||[]).find(f=>f.kind==='w9')||null;};
   try{await load();}catch(e){if(/admin|403|Forbidden/i.test(e.message))return false;throw e;}
   const act=async(btn,fn,out)=>{btn.disabled=true;if(out)out.textContent='';try{await fn();await load();draw();}catch(e){if(out)out.textContent=e.message;btn.disabled=false;}};
   function draw(){
@@ -199,6 +204,8 @@ export async function mountRetainerClients(root,api,open){
       ${clients.map(c=>`<tr data-c="${esc(c.id)}"><td><b>${esc(c.business_name)}</b><br><small>${esc(c.contact_name)} · ${esc(c.contact_email||'')}</small></td><td>${usd(c.retainer_cents)}/mo</td><td>${ymd(c.start_date)}</td><td>${esc(c.status)}</td>
         <td>${esc(c.agreement?.status||'—')}${c.agreement?.status==='draft'?`<br><button data-send>Send without email</button>`:''}${['draft','sent'].includes(c.agreement?.status)?`<br><button data-reissue>Reissue naming…</button>`:''}${agr(c)?.terms?.consultant_name?`<br><small>Consultant: ${esc(agr(c).terms.consultant_name)}</small>`:''}</td>
         <td><button class="primary" data-open-onb="${esc(c.workspace_id)}">Onboarding</button><br><button data-copy="${esc(portal(c.workspace_id))}">Copy client link</button><br><span class="err" data-out></span></td></tr>`).join('')}</table>
+      <div class="row" style="margin-top:10px"><b>Your W-9</b> <small>${w9?`${esc(w9.file_name)} · uploaded ${day(w9.created_at)}`:'Not uploaded yet. Clients download it from their onboarding page.'}</small>
+        <label class="row" style="margin:0"><input type="file" accept="application/pdf" data-w9-file> <button data-w9-up>${w9?'Replace':'Upload'} W-9</button></label><span class="err" data-out-w9up></span></div>
       <details style="margin-top:10px"><summary><b>New retainer client</b></summary><form data-new>
         <div class="row"><label>Business name <input name="business_name" required maxlength="200"></label><label>Legal name <input name="legal_name" maxlength="200" placeholder="same as business"></label></div>
         <div class="row"><label>Contact name <input name="contact_name" required></label><label>Contact email <input name="contact_email" type="email" required dir="ltr"></label></div>
@@ -215,6 +222,9 @@ export async function mountRetainerClients(root,api,open){
         if(name&&name.trim())act(e.currentTarget,()=>api(`/projects/improvement/consultant/clients/${c.id}/agreement`,{method:'POST',body:JSON.stringify({consultant_name:name.trim()})}),out);});
       row.querySelector('[data-send]')?.addEventListener('click',e=>{const g=agr(c);if(!g){out.textContent='Agreement not found';return;}
         confirm('Freeze and send this agreement without emailing the client? The text can no longer change. You send the link yourself.')&&act(e.currentTarget,()=>api(`/projects/improvement/consultant/agreements/${g.id}/send`,{method:'POST',body:JSON.stringify({revision:g.revision,notify:false})}),out);});});
+    const upBtn=root.querySelector('[data-w9-up]');
+    upBtn.onclick=e=>{const f=root.querySelector('[data-w9-file]').files[0],out=root.querySelector('[data-out-w9up]');if(!f){out.textContent='Choose the PDF first.';return;}
+      const fd=new FormData();fd.append('file',f,f.name);act(e.currentTarget,()=>api('/projects/improvement/consultant/files/w9',{method:'POST',body:fd}),out);};
     const form=root.querySelector('[data-new]');
     form.onsubmit=ev=>{ev.preventDefault();const f=form.elements;act(form.querySelector('button'),()=>api('/projects/improvement/consultant/clients',{method:'POST',body:JSON.stringify({business_name:f.business_name.value,...(f.legal_name.value.trim()?{legal_name:f.legal_name.value.trim()}:{}),
       contact_name:f.contact_name.value,contact_email:f.contact_email.value,tier:f.tier.value,retainer_cents:Math.round(Number(f.retainer.value)*100),start_date:f.start_date.value,ai_mode:f.ai_mode.value,governing_law:f.governing_law.value,consultant_name:f.consultant_name.value})}),form.querySelector('[data-out]'));};
