@@ -13,7 +13,7 @@ const CHARGE={scheduled:'Scheduled',processing:'Processing · bank debits take a
 const TASK={published:'To do',client_done:'Done · waiting for Groundwork to check',verified:'Verified',reopened:'Needs another look'};
 const W='/projects/improvement/workspaces/';
 /** Who the agreement names as the Consultant. Groundwork bills through PLAY.FUN LLC (2026-10-23). */
-const ENTITY='PLAY.FUN LLC, a Florida limited liability company doing business as Groundwork';
+const ENTITY='Groundwork, a trade name of PLAY.FUN LLC, a Florida limited liability company';
 
 /** The standard access tasks. `{email}` is the consultant's access email for this client. No step ever asks for a secret. */
 export const PRESETS=[
