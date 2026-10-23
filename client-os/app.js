@@ -36,7 +36,10 @@ async function start(){
  const openClient=(id,name)=>{if(![...select.options].some(o=>o.value===id))select.add(new Option(name||id,id));select.value=id;workspace=id;showBoard(true);showOnboarding(id);load().catch(report);};
  const consultant=await mountConsultant(home,api,openClient).catch(e=>{report(e);return false;});
  select.onchange=()=>{if(!select.value){showBoard(false);return;}workspace=select.value;showBoard(true);showOnboarding(workspace);load().catch(report);};
- if(consultant){admin=true;document.querySelector('#picker').hidden=false;await mountRetainerClients(retainers,api,openClient).catch(report);select.prepend(new Option(say('All clients'),''));select.value='';showBoard(false);if(want.ws)openClient(want.ws);return;}
+ if(consultant){admin=true;document.querySelector('#picker').hidden=false;await mountRetainerClients(retainers,api,openClient).catch(report);
+  // Retainer clients the consultant is not a member of still belong in his picker.
+  for(const c of await api('/projects/improvement/consultant/clients').catch(()=>[]))if(![...select.options].some(o=>o.value===c.workspace_id))select.add(new Option(c.business_name,c.workspace_id));
+ select.prepend(new Option(say('All clients'),''));select.value='';showBoard(false);if(want.ws)openClient(want.ws);return;}
  if(!workspaces.length){err.textContent=say('No workspace has been granted to this account yet.');return;}
  workspace=(workspaces.find(w=>w.id===want.ws)||workspaces[0]).id;select.value=workspace;showBoard(true);showOnboarding(workspace);await load();
 }
