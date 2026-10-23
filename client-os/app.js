@@ -31,7 +31,7 @@ async function start(){
  let admin=false;
  // The onboarding checklist sits above the board while the workspace has a retainer; nothing shows when it has none.
  const showOnboarding=id=>{onboarding.hidden=true;onboarding.replaceChildren();mountOnboarding(onboarding,api,id,{admin,bankSession:id===want.ws?want.bankSession:''}).then(on=>{onboarding.hidden=!on;if(on&&id===want.ws)onboarding.scrollIntoView();}).catch(report);};
- const openClient=id=>{if(![...select.options].some(o=>o.value===id))select.add(new Option(id,id));select.value=id;workspace=id;showBoard(true);showOnboarding(id);load().catch(report);};
+ const openClient=(id,name)=>{if(![...select.options].some(o=>o.value===id))select.add(new Option(name||id,id));select.value=id;workspace=id;showBoard(true);showOnboarding(id);load().catch(report);};
  const consultant=await mountConsultant(home,api,openClient).catch(e=>{report(e);return false;});
  select.onchange=()=>{if(!select.value){showBoard(false);return;}workspace=select.value;showBoard(true);showOnboarding(workspace);load().catch(report);};
  if(consultant){admin=true;await mountRetainerClients(retainers,api,openClient).catch(report);select.prepend(new Option(say('All clients'),''));select.value='';showBoard(false);if(want.ws)openClient(want.ws);return;}
