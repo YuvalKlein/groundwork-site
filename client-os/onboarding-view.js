@@ -55,10 +55,11 @@ export async function mountOnboarding(root,api,w,opts={}){
     catch(e){msg=e.message;}
   }
   const load=async()=>{
-    engagement=await api(`${W}${w}/engagement`).catch(()=>null);
+    // The workspace endpoint answers members only; the consultant (not a member) finds the retainer in his client list.
+    engagement=admin?(await api('/projects/improvement/consultant/clients').catch(()=>[])).find(c=>c.workspace_id===w)||null:await api(`${W}${w}/engagement`).catch(()=>null);
     if(!engagement&&!admin)return false;
     [agreements,billing,tasks]=await Promise.all([api(`${W}${w}/agreements`).catch(()=>[]),api(`${W}${w}/billing`).catch(()=>null),api(`${W}${w}/access-tasks`).catch(()=>[])]);
-    if(admin&&engagement)consultantClient=await api(`/projects/improvement/consultant/clients/${engagement.id}`).catch(()=>null);
+    if(admin)consultantClient=engagement;
     return true;
   };
   if(!(await load()))return false;
@@ -173,7 +174,7 @@ export async function mountRetainerClients(root,api,open){
         <small>Creates the business, the workspace, the contact as owner, the engagement and a draft ACH agreement. Nothing is emailed.</small>
         <div class="row"><button class="primary">Create client</button><span class="err" data-out></span></div></form></details></div>`;
     root.querySelectorAll('[data-c]').forEach(row=>{const c=clients.find(x=>x.id===row.dataset.c),out=row.querySelector('[data-out]');
-      row.querySelector('[data-open-onb]').onclick=()=>open(c.workspace_id);
+      row.querySelector('[data-open-onb]').onclick=()=>open(c.workspace_id,c.business_name);
       row.querySelector('[data-copy]').onclick=async e=>{try{await navigator.clipboard.writeText(e.currentTarget.dataset.copy);out.className='ok';out.textContent='Copied';}catch{out.textContent=e.currentTarget.dataset.copy;}};
       row.querySelector('[data-send]')?.addEventListener('click',e=>{const g=agr(c);if(!g){out.textContent='Agreement not found';return;}
         confirm('Freeze and send this agreement without emailing the client? The text can no longer change. You send the link yourself.')&&act(e.currentTarget,()=>api(`/projects/improvement/consultant/agreements/${g.id}/send`,{method:'POST',body:JSON.stringify({revision:g.revision,notify:false})}),out);});});
