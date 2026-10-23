@@ -80,3 +80,15 @@ Files and signing, 18 Oct 2026: Documents can be uploaded files (`POST /document
 with a FormData body) and opened (`GET /documents/ID/file`, `request` with `as: 'blob'`). An `agreement` file shows who signed
 it, and a signed-in owner or editor who has not signed gets a Sign dialog: open the file, type a full name, tick consent.
 client-os's app.js passes FormData bodies as is and returns blobs for `as: 'blob'`.
+
+## Retainer onboarding (23 Oct 2026)
+
+`onboarding-view.js` (new; `improvement-view.js` and its Fresh Air sync are untouched). A workspace with a retainer
+(`GET /workspaces/W/engagement` not null) shows a checklist above its board: 1. sign the agreement, 2. connect a US bank
+in Stripe's hosted Checkout (ACH only; the backend debits the deposit and schedules the monthly retainer), 3. access tasks
+(invite the consultant's email; never a password, key or code), each marked done by the client and verified by the
+consultant. Links: `/client-os/?ws=W&view=onboarding`; Stripe returns with `&bank_session=cs_…`, which the page completes
+once through the backend. The consultant (Groundwork admin) also gets "Retainer clients (ACH)": the list, a New client form,
+"Send without email" for the draft agreement (`notify: false`), "Copy client link", and on each client's onboarding page the
+task controls (standard set of 11 tasks, add, verify, reopen, remove). Backend: unitism-backend API_GUIDE "Groundwork ACH
+billing and access tasks".
