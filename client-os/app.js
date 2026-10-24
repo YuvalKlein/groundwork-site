@@ -26,7 +26,8 @@ async function api(path,options={},as){
  const form=options.body instanceof FormData;
  const r=await fetch(config.apiBase.replace(/\/$/,'')+path,{...options,headers:{...(form?{}:{'Content-Type':'application/json'}),...(token?{Authorization:'Bearer '+token}:{}),...options.headers},cache:'no-store'});
  if(as==='blob'&&r.ok)return r.blob();
- const body=await r.json().catch(()=>({message:'Backend unavailable'}));if(r.status===401){token='';sessionStorage.removeItem(SESSION_KEY);document.querySelector('#login').hidden=false;document.querySelector('#logout').hidden=true;document.querySelector('#picker').hidden=true;document.querySelector('#workspace-role').hidden=true;boardReady=false;el.hidden=true;el.board=null;setProjection(null);atlasNav.hidden=true;loadVersion++;}if(!r.ok){const error=new Error(Array.isArray(body.message)?body.message.join('\n'):body.message||'Request failed');error.status=r.status;throw error;}return body;
+ // An empty 2xx body is no data (null), not an outage.
+ const text=await r.text().catch(()=>null);let body;try{body=text?JSON.parse(text):(r.ok?null:{message:'Backend unavailable'});}catch{body={message:'Backend unavailable'};}if(r.status===401){token='';sessionStorage.removeItem(SESSION_KEY);document.querySelector('#login').hidden=false;document.querySelector('#logout').hidden=true;document.querySelector('#picker').hidden=true;document.querySelector('#workspace-role').hidden=true;boardReady=false;el.hidden=true;el.board=null;setProjection(null);atlasNav.hidden=true;loadVersion++;}if(!r.ok){const error=new Error(Array.isArray(body.message)?body.message.join('\n'):body.message||'Request failed');error.status=r.status;throw error;}return body;
 }
 // The page around the board follows the workspace's language once signed in.
 async function load(){

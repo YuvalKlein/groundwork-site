@@ -12,6 +12,8 @@ const CONSENT='I have read this agreement and I sign it electronically. My typed
 const CHARGE={scheduled:'Scheduled',processing:'Processing · bank debits take about 4 business days',paid:'Paid',failed:'Failed',void:'Void'};
 const TASK={published:'To do',client_done:'Done · waiting for Groundwork to check',verified:'Verified',reopened:'Needs another look'};
 const W='/projects/improvement/workspaces/';
+/** Only a real retainer engagement for this workspace counts; null, an error body or anything else means no checklist. */
+export const isEngagement=(e,w)=>!!e&&typeof e==='object'&&!Array.isArray(e)&&typeof e.id==='string'&&e.workspace_id===w;
 /** Who the agreement names as the Consultant. Groundwork bills through PLAY.FUN LLC (2026-10-23). */
 const ENTITY='Groundwork, a trade name of PLAY.FUN LLC, a Florida limited liability company';
 
@@ -58,8 +60,10 @@ export async function mountOnboarding(root,api,w,opts={}){
   }
   const load=async()=>{
     // The workspace endpoint answers members only; the consultant (not a member) finds the retainer in his client list.
-    engagement=admin?(await api('/projects/improvement/consultant/clients').catch(()=>[])).find(c=>c.workspace_id===w)||null:await api(`${W}${w}/engagement`).catch(()=>null);
-    if(!engagement&&!admin)return false;
+    const found=admin?((await api('/projects/improvement/consultant/clients').catch(()=>[]))||[]).find(c=>c&&c.workspace_id===w):await api(`${W}${w}/engagement`).catch(()=>null);
+    engagement=isEngagement(found,w)?found:null;
+    // No retainer, no checklist: for the client and for the consultant alike.
+    if(!engagement)return false;
     [notes,aiKey]=await Promise.all([api(`${W}${w}/call-sources`).catch(()=>null),api(`${W}${w}/ai-key`).catch(()=>null)]);
     [agreements,billing,tasks]=await Promise.all([admin?api('/projects/improvement/consultant/agreements').then(all=>all.filter(g=>g.workspace_id===w)).catch(()=>[]):api(`${W}${w}/agreements`).catch(()=>[]),api(`${W}${w}/billing`).catch(()=>null),api(`${W}${w}/access-tasks`).catch(()=>[])]);
     if(admin)consultantClient=engagement;
