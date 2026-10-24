@@ -100,8 +100,29 @@ export function claimRows(map) {
   });
 }
 
-/** Questions the map's structure suggests. They are suggestions, not findings. */
-export const unknownRows = (unknowns) => list(unknowns).map((u) => ({ key: str(u.key), question: str(u.question), why: str(u.why) }));
+export const GAP_AREAS = {
+  capacity: "Capacity",
+  lead_times: "Lead times",
+  revenue_mix: "Revenue mix",
+  improvement_projects: "Improvement projects",
+  people: "People",
+  customers: "Customers",
+  suppliers: "Suppliers",
+  money_flow: "Money flow",
+  other: "Other",
+};
+/**
+ * Open questions. Groundwork's own suggestions for this business come first, labelled by topic; then the gaps in the
+ * map's structure. All are questions, never findings.
+ */
+export const unknownRows = (unknowns) =>
+  list(unknowns).map((u) => ({
+    key: str(u.key),
+    question: str(u.question),
+    why: str(u.why),
+    source: u.source === "model" ? "model" : "structure",
+    topic: u.source === "model" ? GAP_AREAS[u.area] ?? "Other" : "Map structure",
+  }));
 
 const OPS = { add: "Added", revise: "Revised", retract: "Removed", reject: "Couldn't apply" };
 /** Names instead of keys where the map knows them: a part by its name, a handoff as "from → to: item". */
