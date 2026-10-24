@@ -45,7 +45,8 @@ function message(role, text, extra = "") {
 function setError(status, body) {
   const el = $("error");
   el.textContent = status === null ? "" : errorText(status, body);
-  if (status === 503 && !preview) el.append(" ", h("a", { href: "?preview", text: "Open the preview" }));
+  // Before any conversation exists, a live failure leaves the owner with nothing to do: offer the preview.
+  if (!preview && !session && [0, 503].includes(status)) el.append(" ", h("a", { href: "?preview", text: "Open the preview" }));
 }
 function setBusy(b) { busy = b; $("send").disabled = b || exhausted; $("text").disabled = b || exhausted; }
 
