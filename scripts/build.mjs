@@ -10,5 +10,5 @@ if (apiBase) {
 }
 rmSync('dist', {recursive: true, force: true});
 mkdirSync('dist');
-for (const path of ['index.html', 'og.png', 'robots.txt', 'sitemap.xml', 'client-os', 'auth', 'system', 'atlas']) cpSync(path, `dist/${path}`, {recursive: true});
+for (const path of ['index.html', 'og.png', 'robots.txt', 'sitemap.xml', 'client-os', 'auth', 'system', 'atlas', 'discover']) cpSync(path, `dist/${path}`, {recursive: true});
 writeFileSync('dist/client-os/config.js', `window.GROUNDWORK_CONFIG = ${JSON.stringify({apiBase, appSlug: 'groundwork'})};\n`);

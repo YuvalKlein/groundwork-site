@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><meta name="referrer" content="no-referrer">
+<title>Groundwork · Discover</title>
+<style>
+:root{--bg:#f5f7f2;--ink:#18332e;--muted:#546c63;--line:#d3e0d8;--card:#fff;--accent:#176b59;--warn:#943715;--soft:#eaf2ed}
+[hidden]{display:none!important}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:16px 24px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+header strong{font-size:17px}.badge{font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted)}
+.badge.preview{border-color:#e2c27a;background:#fdf6e3;color:#7a5a12}
+main{max-width:1500px;margin:auto;padding:20px;display:grid;grid-template-columns:minmax(300px,400px) minmax(0,1fr);gap:20px;align-items:start}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-width:0}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:0 0 10px}p{margin:0}.muted{color:var(--muted);font-size:14px}
+#chat{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 24px)}
+#messages{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:120px}
+#messages li{padding:10px 12px;border-radius:12px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}
+#messages .groundwork{background:var(--soft);align-self:flex-start}#messages .owner{background:#e6eef8;align-self:flex-end}
+#messages .pending{color:var(--muted);font-style:italic}
+form{display:flex;flex-direction:column;gap:8px}textarea{font:inherit;padding:10px;border:1px solid #bdcfc4;border-radius:10px;min-height:96px;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button{font:inherit;padding:8px 14px;border:1px solid #bdcfc4;border-radius:8px;background:var(--card);cursor:pointer;color:var(--ink)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}button:disabled{opacity:.55;cursor:default}
+button:focus-visible,textarea:focus-visible{outline:2px solid #2f7fd6;outline-offset:2px}
+#error{color:var(--warn);font-size:14px}#error:empty{display:none}
+#mapcol{display:flex;flex-direction:column;gap:20px;min-width:0}
+#empty{padding:40px 18px;text-align:center}
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.items li{border:1px solid var(--line);border-radius:10px;padding:8px 10px;overflow-wrap:anywhere}
+.k{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;margin-right:6px;border:1px solid}
+.k.stated{color:#176b59;border-color:#9fcbb9;background:#eef7f2}.k.inferred{color:#6b5a17;border-color:#e2cf8f;background:#fdf8e7;border-style:dashed}
+.k.contested{color:#943715;border-color:#e3b29e;background:#fcefe9}.k.retracted{color:#6a6f73;border-color:#c9cdd0;background:#f1f2f3;text-decoration:line-through}
+.quote{display:block;color:var(--muted);font-size:13px;margin-top:3px}.reject{color:var(--warn)}
+details summary{cursor:pointer;color:var(--accent);font-size:14px}
+.notice{font-size:13px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px}
+@media (max-width:900px){main{grid-template-columns:minmax(0,1fr);padding:12px}#chat{position:static;max-height:none}#messages{max-height:50vh}}
+</style>
+<header>
+  <strong>Groundwork</strong><span>Discover your business map</span>
+  <span id="mode" class="badge"></span>
+</header>
+<main>
+  <section id="chat" aria-label="Conversation">
+    <div><h1>Tell us about your business</h1>
+      <p class="muted">In your own words. No forms, no categories, nothing to connect. The map is a first draft built from what you say: it is not verified and it is not a diagnosis.</p></div>
+    <form id="signin" hidden>
+      <p><strong>Invited testers only.</strong> <span class="muted">Sign in with the email Groundwork invited. The link opens your Groundwork page; then come back to this page in the same tab.</span></p>
+      <label for="email" class="muted">Email</label>
+      <input id="email" type="email" required autocomplete="email" dir="ltr" style="font:inherit;padding:10px;border:1px solid #bdcfc4;border-radius:10px">
+      <div class="row"><button class="primary" type="submit">Send sign-in link</button><a href="?preview">Or try the preview</a></div>
+      <p id="signin-status" class="muted" role="status"></p>
+    </form>
+    <ol id="messages" aria-live="polite"></ol>
+    <form id="say">
+      <label for="text" class="muted">Your message</label>
+      <textarea id="text" maxlength="2000" required></textarea>
+      <div class="row"><button class="primary" id="send" type="submit">Send</button><span id="usage" class="muted"></span></div>
+    </form>
+    <p id="error" role="alert"></p>
+    <div class="row"><button id="erase" type="button" hidden>Delete this conversation</button><span id="expires" class="muted"></span></div>
+    <p class="notice" id="limits"></p>
+  </section>
+  <div id="mapcol">
+    <section id="empty"><h2>Your map will appear here</h2><p class="muted">As you talk, the parts of your business and the handoffs between them show up, labelled by how we know them.</p></section>
+    <groundwork-living-atlas hidden></groundwork-living-atlas>
+    <div class="panels">
+      <section><h2>What's on the map</h2><p class="muted" id="legend"></p><ul class="items" id="parts"></ul><h2 style="margin-top:14px">Handoffs</h2><ul class="items" id="flows"></ul></section>
+      <section><h2>Your figures</h2><ul class="items" id="claims"></ul><h2 style="margin-top:14px">Goals and projects</h2><ul class="items" id="goals"></ul></section>
+      <section><h2>Open questions</h2><p class="muted">Suggested from gaps in the map so far. They are questions, not findings.</p><ul class="items" id="unknowns"></ul></section>
+      <section><h2>What changed</h2><p class="muted">Every change Groundwork made to the map, and anything it couldn't apply.</p><ul class="items" id="history"></ul></section>
+    </div>
+  </div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="/client-os/config.js"></script>
+<script type="module" src="/discover/app.js"></script>
+</html>
