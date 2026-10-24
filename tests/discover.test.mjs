@@ -61,10 +61,15 @@ test("figures are the owner's, not measurements; unknowns are questions with a r
   assert.equal(claim.source, "Your figure, not verified");
   assert.equal(claim.confidence, "low");
   assert.match(claim.meaning, /not yet split/);
-  for (const u of unknownRows(r.unknowns)) {
+  const rows = unknownRows(r.unknowns);
+  for (const u of rows) {
     assert.ok(u.question.endsWith("?"));
     assert.ok(u.why.length > 0);
   }
+  // Groundwork's own suggestions lead, labelled by topic; structural gaps follow, labelled as such.
+  assert.deepEqual(rows.slice(0, 3).map((u) => [u.source, u.topic]), [["model", "Capacity"], ["model", "Revenue mix"], ["model", "Lead times"]]);
+  assert.ok(rows.slice(3).every((u) => u.source === "structure" && u.topic === "Map structure"));
+  assert.deepEqual(unknownRows([{ question: "q?", why: "w", source: "model", area: "made-up" }])[0].topic, "Other");
 });
 
 test("limits and every backend failure have honest text", async () => {

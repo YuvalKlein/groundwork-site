@@ -86,7 +86,7 @@ function renderMap(map, unknowns) {
   const goals = [...list(map?.goals).map((g) => `Goal: ${g.text}`), ...list(map?.work_items).map((w) => `${w.kind}: ${w.text}`)];
   $("goals").replaceChildren(...(goals.length ? goals.map((g) => h("li", { text: g })) : [h("li", { class: "muted", text: "None yet. Goals and projects are kept apart from the parts of the business." })]));
   const open = unknownRows(unknowns);
-  $("unknowns").replaceChildren(...(open.length ? open.map((u) => h("li", {}, h("span", { text: u.question }), h("span", { class: "quote", text: u.why }))) : [h("li", { class: "muted", text: "None right now." })]));
+  $("unknowns").replaceChildren(...(open.length ? open.map((u) => h("li", {}, h("span", { class: `k topic ${u.source}`, text: u.topic }), h("span", { text: u.question }), h("span", { class: "quote", text: u.why }))) : [h("li", { class: "muted", text: "None right now." })]));
 }
 
 function renderHistory(rows) {

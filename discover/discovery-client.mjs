@@ -63,14 +63,15 @@ const flow = (key, from, to, item, view, knowledge, quote = null) => ({ key, fro
 /** Mirrors the backend's unknowns: from the map's own structure, ranked by a plain heuristic. */
 function mockUnknowns(map) {
   const live = map.parts.filter((p) => p.knowledge !== "retracted");
-  if (!live.length) return [{ key: "start", about: "business", question: OPENING, why: "Nothing is on the map yet.", rank: 0 }];
+  if (!live.length) return [{ key: "start", about: "business", question: OPENING, why: "Nothing is on the map yet.", rank: 0, source: "structure" }];
+  const model = (map.gaps ?? []).map((g) => ({ ...g, rank: 0.5, source: "model" }));
   const out = [];
-  for (const v of VIEWS) if (!live.some((p) => p.views.includes(v.key))) out.push({ key: `view:${v.key}`, about: v.key, question: v.question, why: `Nothing on the map covers ${v.name.toLowerCase()} yet.`, rank: 1 });
+  for (const v of VIEWS) if (!live.some((p) => p.views.includes(v.key))) out.push({ key: `view:${v.key}`, about: v.key, question: v.question, why: `Nothing on the map covers ${v.name.toLowerCase()} yet.`, rank: 1, source: "structure" });
   for (const p of live) {
-    if (!p.owner_role) out.push({ key: `owner:${p.key}`, about: p.key, question: `Who is responsible for ${p.name}?`, why: `${p.name} has no known owner.`, rank: 3 });
-    if (p.knowledge === "inferred") out.push({ key: `confirm:${p.key}`, about: p.key, question: `I assumed there is "${p.name}". Is that right, and what do you call it?`, why: "Inferred, not stated by you.", rank: 4 });
+    if (!p.owner_role) out.push({ key: `owner:${p.key}`, about: p.key, question: `Who is responsible for ${p.name}?`, why: `${p.name} has no known owner.`, rank: 3, source: "structure" });
+    if (p.knowledge === "inferred") out.push({ key: `confirm:${p.key}`, about: p.key, question: `I assumed there is "${p.name}". Is that right, and what do you call it?`, why: "Inferred, not stated by you.", rank: 4, source: "structure" });
   }
-  return out.sort((a, b) => a.rank - b.rank);
+  return [...model, ...out.sort((a, b) => a.rank - b.rank)];
 }
 
 /** Mirrors the backend seed export (retracted parts and their flows left out). */
@@ -111,7 +112,7 @@ const firstSentence = (text, re) => {
 export function mockClient({ fail = null, now = () => new Date() } = {}) {
   const id = "00000000-0000-4000-8000-000000d15c0e";
   const token = "preview";
-  let map = { format: "groundwork-discovery-map/1", revision: 0, parts: [], flows: [], goals: [], work_items: [], claims: [], history: [] };
+  let map = { format: "groundwork-discovery-map/1", revision: 0, parts: [], flows: [], goals: [], work_items: [], claims: [], gaps: [], history: [] };
   const turns = [{ seq: 1, role: "groundwork", text: OPENING, map_revision: 0, changes: [] }];
   let used = 0;
   const expires = new Date(now().getTime() + 7 * 86_400_000).toISOString();
@@ -141,6 +142,12 @@ export function mockClient({ fail = null, now = () => new Date() } = {}) {
         flow("flow-invoicing-crews", "invoicing", "install-crews", "invoices", "resources_finance", "inferred"),
       ];
       map.goals = [{ key: "predictable-installs", kind: "Objective", text: "More predictable install bookings", knowledge: "inferred", quote: null }];
+      map.work_items = [{ key: "tablet-quoting", kind: "Project", text: "Tablet quoting app", quote: null }];
+      map.gaps = [
+        { key: "gap:capacity", area: "capacity", about: "install-crews", question: "How many installs can each crew finish in a typical week?", why: "Sets how much install work the business can take on." },
+        { key: "gap:revenue", area: "revenue_mix", about: "business", question: "Roughly what share of the money comes from counter sales versus installs?", why: "Shows which part of the map carries the money." },
+        { key: "gap:lead", area: "lead_times", about: "business", question: "How long do tile orders take to arrive?", why: "Supply waits can hold up installs." },
+      ];
       map.claims = [{ id: "business:money:monthly:r1:0", subject: "business", field: "money:monthly", concept: "reported_revenue_unspecified", value: 60000, unit: "USD", period: "month", scope: "business", confidence: "low", provenance: { source_kind: "owner_statement" }, supersedes: null }];
       return {
         reply: "So you sell tile from a showroom and online, and also install it with your own crews. Could you walk me through what happens from the moment a homeowner asks for an install to the day it's paid?",

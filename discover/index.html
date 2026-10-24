@@ -29,6 +29,7 @@ button:focus-visible,textarea:focus-visible{outline:2px solid #2f7fd6;outline-of
 .items li{border:1px solid var(--line);border-radius:10px;padding:8px 10px;overflow-wrap:anywhere}
 .k{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;margin-right:6px;border:1px solid}
 .k.stated{color:#176b59;border-color:#9fcbb9;background:#eef7f2}.k.inferred{color:#6b5a17;border-color:#e2cf8f;background:#fdf8e7;border-style:dashed}
+.k.topic.model{color:#1f4f8a;border-color:#a9c4e6;background:#eef4fb}.k.topic.structure{color:var(--muted);border-color:var(--line);background:#f6f8f6}
 .k.contested{color:#943715;border-color:#e3b29e;background:#fcefe9}.k.retracted{color:#6a6f73;border-color:#c9cdd0;background:#f1f2f3;text-decoration:line-through}
 .quote{display:block;color:var(--muted);font-size:13px;margin-top:3px}.reject{color:var(--warn)}
 details summary{cursor:pointer;color:var(--accent);font-size:14px}
@@ -66,7 +67,7 @@ details summary{cursor:pointer;color:var(--accent);font-size:14px}
     <div class="panels">
       <section><h2>What's on the map</h2><p class="muted" id="legend"></p><ul class="items" id="parts"></ul><h2 style="margin-top:14px">Handoffs</h2><ul class="items" id="flows"></ul></section>
       <section><h2>Your figures</h2><ul class="items" id="claims"></ul><h2 style="margin-top:14px">Goals and projects</h2><ul class="items" id="goals"></ul></section>
-      <section><h2>Open questions</h2><p class="muted">Suggested from gaps in the map so far. They are questions, not findings.</p><ul class="items" id="unknowns"></ul></section>
+      <section><h2>Open questions</h2><p class="muted">What Groundwork would ask next, by topic, then gaps in the map's structure. Questions, not findings.</p><ul class="items" id="unknowns"></ul></section>
       <section><h2>What changed</h2><p class="muted">Every change Groundwork made to the map, and anything it couldn't apply.</p><ul class="items" id="history"></ul></section>
     </div>
   </div>
