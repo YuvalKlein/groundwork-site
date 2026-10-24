@@ -1,7 +1,7 @@
 // Read-only projection helpers. Never derive business relationships from layout.
 export const list = (value) => (Array.isArray(value) ? value : []);
 export const targetId = (edge) =>
-  edge.target_id ?? edge.to_id ?? edge.target_entity_id ?? "";
+  edge.target_id ?? edge.to_id ?? edge.target_entity_id ?? edge.to ?? "";
 export function fromBoard(board) {
   const entities = list(board.anatomy);
   return {

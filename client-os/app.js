@@ -1,12 +1,15 @@
 import './atlas-view.js';
+import './living-atlas.js';
 import {readAtlas} from './atlas-data.mjs';
 import './improvement-view.js';
 import {captureMagicLink, verifyMagicLink, SESSION_KEY} from './auth.js';
 import {mountConsultant} from './consultant.js';
 const config=window.GROUNDWORK_CONFIG,el=document.querySelector('groundwork-improvement'),err=document.querySelector('#error');
 let token='',workspace='',loadVersion=0,view='board',boardReady=false;
-const atlas=document.querySelector('groundwork-atlas'),atlasNav=document.querySelector('#atlas-nav');
-function selectView(next){view=next;el.hidden=next!=='board'||!boardReady;atlas.hidden=next!=='atlas';document.querySelector('#show-board').setAttribute('aria-pressed',String(next==='board'));document.querySelector('#show-atlas').setAttribute('aria-pressed',String(next==='atlas'));}
+const atlas=document.querySelector('groundwork-atlas'),living=document.querySelector('groundwork-living-atlas'),atlasNav=document.querySelector('#atlas-nav');
+// The Living Atlas sits above the descriptive Atlas in the same tab; it hides itself when the workspace has no map.
+const setProjection=data=>{atlas.projection=data;living.projection=data;if(view!=='atlas')living.hidden=true;};
+function selectView(next){view=next;el.hidden=next!=='board'||!boardReady;atlas.hidden=next!=='atlas';living.hidden=next!=='atlas'||!living.map;document.querySelector('#show-board').setAttribute('aria-pressed',String(next==='board'));document.querySelector('#show-atlas').setAttribute('aria-pressed',String(next==='atlas'));}
 document.querySelector('#show-board').onclick=()=>selectView('board');
 document.querySelector('#show-atlas').onclick=()=>selectView('atlas');
 const say=s=>window.groundworkShell?.t(s)??s;
@@ -17,21 +20,21 @@ async function api(path,options={},as){
  const form=options.body instanceof FormData;
  const r=await fetch(config.apiBase.replace(/\/$/,'')+path,{...options,headers:{...(form?{}:{'Content-Type':'application/json'}),...(token?{Authorization:'Bearer '+token}:{}),...options.headers},cache:'no-store'});
  if(as==='blob'&&r.ok)return r.blob();
- const body=await r.json().catch(()=>({message:'Backend unavailable'}));if(r.status===401){token='';sessionStorage.removeItem(SESSION_KEY);document.querySelector('#login').hidden=false;document.querySelector('#logout').hidden=true;document.querySelector('#picker').hidden=true;document.querySelector('#workspace-role').hidden=true;boardReady=false;el.hidden=true;el.board=null;atlas.projection=null;atlasNav.hidden=true;loadVersion++;}if(!r.ok){const error=new Error(Array.isArray(body.message)?body.message.join('\n'):body.message||'Request failed');error.status=r.status;throw error;}return body;
+ const body=await r.json().catch(()=>({message:'Backend unavailable'}));if(r.status===401){token='';sessionStorage.removeItem(SESSION_KEY);document.querySelector('#login').hidden=false;document.querySelector('#logout').hidden=true;document.querySelector('#picker').hidden=true;document.querySelector('#workspace-role').hidden=true;boardReady=false;el.hidden=true;el.board=null;setProjection(null);atlasNav.hidden=true;loadVersion++;}if(!r.ok){const error=new Error(Array.isArray(body.message)?body.message.join('\n'):body.message||'Request failed');error.status=r.status;throw error;}return body;
 }
 // The page around the board follows the workspace's language once signed in.
 async function load(){
- const version=++loadVersion,selected=workspace;boardReady=false;el.hidden=true;el.board=null;atlas.projection=null;err.textContent='';document.querySelector('#workspace-role').hidden=true;
+ const version=++loadVersion,selected=workspace;boardReady=false;el.hidden=true;el.board=null;setProjection(null);err.textContent='';document.querySelector('#workspace-role').hidden=true;
  const board=await api('/projects/improvement/workspaces/'+encodeURIComponent(selected));
  if(version!==loadVersion)return;
  el.board=board;boardReady=true;selectView(view);window.groundworkShell?.apply(board.workspace?.locale==='he'?'he':'en');
  const roleLabel=document.querySelector('#workspace-role');const roles={editor:['Consultant','יועץ'],owner:['Business owner','בעל העסק'],reader:['Viewer','צופה']};const label=roles[board.role];roleLabel.hidden=!label;roleLabel.textContent=label?(board.workspace?.locale==='he'?label[1]:label[0]):'';
- try{const data=await readAtlas(api,selected,board);if(version===loadVersion)atlas.projection=data;}
- catch(e){if(version===loadVersion){atlas.projection=null;report(e);}}
+ try{const data=await readAtlas(api,selected,board);if(version===loadVersion)setProjection(data);}
+ catch(e){if(version===loadVersion){setProjection(null);report(e);}}
 }
 // The consultant (Groundwork admin) lands on "All clients"; a business owner straight on their own board.
 const home=document.querySelector('#consultant');
-function showBoard(on){loadVersion++;atlas.projection=null;boardReady=false;el.board=null;atlasNav.hidden=!on;home.hidden=on;if(on)selectView(view);else{el.hidden=true;atlas.hidden=true;}if(!on){document.querySelector('#workspace-role').hidden=true;window.groundworkShell?.apply();}}
+function showBoard(on){loadVersion++;setProjection(null);boardReady=false;el.board=null;atlasNav.hidden=!on;home.hidden=on;if(on)selectView(view);else{el.hidden=true;atlas.hidden=true;living.hidden=true;}if(!on){document.querySelector('#workspace-role').hidden=true;window.groundworkShell?.apply();}}
 async function start(){
  const workspaces=await api('/projects/improvement/workspaces');
  document.querySelector('#login').hidden=true;document.querySelector('#logout').hidden=false;document.querySelector('#picker').hidden=false;
