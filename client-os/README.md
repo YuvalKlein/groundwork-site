@@ -81,6 +81,8 @@ with a FormData body) and opened (`GET /documents/ID/file`, `request` with `as: 
 it, and a signed-in owner or editor who has not signed gets a Sign dialog: open the file, type a full name, tick consent.
 client-os's app.js passes FormData bodies as is and returns blobs for `as: 'blob'`.
 
+Atlas consolidation, 21 Oct 2026: the workspace has Board / Business Atlas controls, and `/atlas/` opens the same read-only map/card component separately. Both use the protected Atlas projection with a 404-only fallback to the authorized board; authorization and server failures never trigger fallback. Record IDs, evidence, versions and uncertainty remain visible. See `docs/atlas-consolidation.md` for provenance, checks and release gates.
+
 ## Retainer onboarding (23 Oct 2026)
 
 `onboarding-view.js` (new; `improvement-view.js` and its Fresh Air sync are untouched). A workspace with a retainer

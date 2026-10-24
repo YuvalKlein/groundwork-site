@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><meta name="referrer" content="no-referrer">
+<title>Groundwork · Business Anatomy Atlas</title>
+<style>
+body{margin:0;font:15px system-ui;background:#f5f7f2;color:#18332e}header{padding:18px 24px;border-bottom:1px solid #c8d8d0;display:flex;gap:20px;align-items:center;flex-wrap:wrap}main{max-width:1320px;margin:auto;padding:20px}a{color:#176b59}button,input{font:inherit}fieldset{border:1px solid #cadbd1;border-radius:10px;display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}label{display:inline-flex;gap:5px;align-items:center}.plate{background:white;border:1px solid #dae5dc;border-radius:14px;overflow:auto}svg{width:100%;min-width:680px;min-height:480px}circle{fill:#e4f2eb;stroke:#19775e;stroke-width:2}line{stroke:#899b96;stroke-width:1.5}text{fill:#18332e;font:13px system-ui}small,.muted{color:#546c63}#detail{white-space:pre-wrap;overflow-wrap:anywhere}.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+</style>
+<header><strong>Groundwork / Business Anatomy Atlas</strong><a href="/client-os/">← Workspace board</a><span id="workspace"></span></header>
+<main>
+<h1>Business systems · first plate</h1>
+<p>Read-only representation of recorded anatomy. Layers can be viewed separately or together. Unrecorded flows, health and sizes remain unknown, not zero.</p>
+<div class="controls"><label>Workspace <select id="workspaces"></select></label><button id="refresh">Refresh</button></div>
+<p id="summary" role="status"></p><groundwork-atlas></groundwork-atlas>
+</main>
+<script src="/client-os/config.js"></script><script type="module" src="/atlas/atlas.js"></script>
+</html>
