@@ -23,11 +23,12 @@ to connect. Files: `discover/` (page, `discovery-view.mjs` pure helpers, `discov
 
 - **Preview** (`?preview`, or any build without an API base): scripted replies, no AI, no network, nothing saved. Use
   `&fail=503|404|409|429|network` to see each error state.
-- **Live** (preview/production builds with an API base): calls the backend. Until PR #1286 is deployed and
-  `GROUNDWORK_DISCOVERY_ENABLED=true` on that environment, starting a conversation shows "isn't open yet" with a link
-  to the preview.
+- **Live** (preview/production builds with an API base): **invited testers only.** The page needs the Groundwork
+  sign-in in the same tab (magic link → `/auth/verify/` → the Client OS; then open `/discover/` in that tab) and sends
+  that token on every call. The backend enforces who may use it (platform sign-in + its tester allowlist; 401/403
+  otherwise); the page only shows the sign-in box. Switched off on the backend → "switched off right now".
 
 ## Before it is public
 
-Bot protection (e.g. Turnstile, verified by the backend on `POST sessions`) and a reviewed abuse plan. The backend caps
-spend per conversation and per day, but a free anonymous AI endpoint must not go live without it.
+Opening it to anyone is a separate change: an anonymous path, bot protection (e.g. Turnstile, verified by the backend)
+and an abuse review. Today there is no anonymous path at all.

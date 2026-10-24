@@ -1,5 +1,5 @@
-// Groundwork Discovery clients. `apiClient` talks to unitism-backend (/api/v1/groundwork/discovery, PR #1286; off
-// unless GROUNDWORK_DISCOVERY_ENABLED=true). `mockClient` is a scripted preview with the same interface: no AI, no
+// Groundwork Discovery clients. `apiClient` talks to unitism-backend (/api/v1/groundwork/discovery: signed-in,
+// allowlisted testers only; off unless GROUNDWORK_DISCOVERY_ENABLED=true). `mockClient` is a scripted preview with the same interface: no AI, no
 // network, nothing saved. Both resolve to the backend's response shapes and reject with {status, body}.
 
 export class DiscoveryError extends Error {
@@ -10,14 +10,17 @@ export class DiscoveryError extends Error {
   }
 }
 
-export function apiClient(apiBase, fetchImpl = (...a) => fetch(...a)) {
+/** `signIn()` returns the platform access token (the Groundwork magic-link session), or "" when signed out. */
+export function apiClient(apiBase, fetchImpl = (...a) => fetch(...a), signIn = () => "") {
   const base = String(apiBase || "").replace(/\/+$/, "") + "/groundwork/discovery/sessions";
   const call = async (path, { method = "GET", token, body } = {}) => {
+    const bearer = signIn();
+    if (!bearer) throw new DiscoveryError(401, null);
     let res;
     try {
       res = await fetchImpl(base + path, {
         method,
-        headers: { ...(token ? { "x-discovery-token": token } : {}), ...(body ? { "content-type": "application/json" } : {}) },
+        headers: { authorization: `Bearer ${bearer}`, ...(token ? { "x-discovery-token": token } : {}), ...(body ? { "content-type": "application/json" } : {}) },
         body: body ? JSON.stringify(body) : undefined,
         credentials: "omit",
         referrerPolicy: "no-referrer",

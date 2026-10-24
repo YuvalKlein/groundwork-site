@@ -137,9 +137,11 @@ export function usageText(usage) {
 /** Honest text for every failure the backend can return. */
 export function errorText(status, body) {
   if (status === 429 && body?.message) return str(body.message);
+  if (status === 401) return "Sign in to use discovery.";
+  if (status === 403) return "Discovery is open to invited testers only. Ask Groundwork for access.";
   if (status === 409) return "Still writing the last reply. Wait a moment, then send again.";
   if (status === 404) return "This conversation is no longer available. It may have expired or been deleted. Start a new one.";
-  if (status === 503) return "Free discovery isn't open yet. You can try the preview with scripted replies.";
+  if (status === 503) return "Discovery is switched off right now. You can try the preview with scripted replies.";
   if (status === 400) return str(body?.message) || "That message couldn't be sent.";
   if (status === 0) return "Couldn't reach Groundwork. Check your connection and try again.";
   return "Something went wrong on our side. Your map is unchanged.";

@@ -69,9 +69,11 @@ test("figures are the owner's, not measurements; unknowns are questions with a r
 
 test("limits and every backend failure have honest text", async () => {
   assert.equal(usageText({ turns_left: 1, budget_left_share: 0.42 }), "1 message left in this free conversation · 42% of its AI budget left");
-  assert.match(errorText(503, {}), /isn't open yet/);
+  assert.match(errorText(503, {}), /switched off/);
   assert.match(errorText(404, {}), /expired or been deleted/);
   assert.match(errorText(409, {}), /Still writing/);
+  assert.match(errorText(401, {}), /Sign in/);
+  assert.match(errorText(403, {}), /invited testers only/);
   assert.equal(errorText(429, { message: "This free conversation has reached its length limit." }), "This free conversation has reached its length limit.");
   assert.match(errorText(0, null), /Couldn't reach/);
   assert.match(errorText(500, null), /map is unchanged/);
@@ -95,16 +97,22 @@ test("the preview stops at its turn limit, and another conversation's token read
 test("the live client sends the token only as a header, no cookies, and maps failures to a status", async () => {
   const calls = [];
   const ok = (body) => ({ ok: true, status: 200, json: async () => body });
-  const c = apiClient("https://api.example/api/v1/", async (url, init) => { calls.push({ url, init }); return ok({ reply: "hi" }); });
+  const c = apiClient("https://api.example/api/v1/", async (url, init) => { calls.push({ url, init }); return ok({ reply: "hi" }); }, () => "jwt-1");
   await c.turn({ id: "a/b", token: "t0k" }, "We sell tile");
+  assert.equal(calls[0].init.headers.authorization, "Bearer jwt-1");
   assert.equal(calls[0].url, "https://api.example/api/v1/groundwork/discovery/sessions/a%2Fb/turns");
   assert.equal(calls[0].init.headers["x-discovery-token"], "t0k");
   assert.equal(calls[0].init.credentials, "omit");
   assert.ok(!calls[0].url.includes("t0k"));
   assert.deepEqual(JSON.parse(calls[0].init.body), { text: "We sell tile" });
-  const down = apiClient("https://api.example/api/v1", async () => { throw new TypeError("offline"); });
+  // Signed out: nothing is sent at all; the page shows the sign-in box.
+  let sent = 0;
+  const out = apiClient("https://api.example/api/v1", async () => { sent++; return ok({}); }, () => "");
+  await assert.rejects(() => out.start(), (e) => e.status === 401);
+  assert.equal(sent, 0);
+  const down = apiClient("https://api.example/api/v1", async () => { throw new TypeError("offline"); }, () => "jwt");
   await assert.rejects(() => down.start(), (e) => e.status === 0);
-  const refused = apiClient("https://api.example/api/v1", async () => ({ ok: false, status: 429, json: async () => ({ reason: "daily_budget", message: "Free discovery has reached today's limit." }) }));
+  const refused = apiClient("https://api.example/api/v1", async () => ({ ok: false, status: 429, json: async () => ({ reason: "daily_budget", message: "Free discovery has reached today's limit." }) }), () => "jwt");
   await assert.rejects(() => refused.start(), (e) => e.status === 429 && e.body.reason === "daily_budget");
 });
 
@@ -132,6 +140,8 @@ test("every element the page script looks up exists in the page", () => {
   assert.ok(ids.length > 10);
   for (const id of new Set(ids)) assert.match(html, new RegExp(`id="${id}"`), `missing #${id}`);
   assert.match(html, /<groundwork-living-atlas hidden><\/groundwork-living-atlas>/);
+  // The page toggles sections with the hidden attribute; a display rule must never override it.
+  assert.match(html, /\[hidden\]\{display:none!important\}/);
 });
 
 test("every discover script parses", () => {

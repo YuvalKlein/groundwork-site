@@ -1,4 +1,5 @@
 import "/client-os/living-atlas.js";
+import { SESSION_KEY } from "/client-os/auth.js";
 import { apiClient, mockClient } from "./discovery-client.mjs";
 import { KNOWLEDGE, changeRows, claimRows, errorText, expiresText, flowRows, historyRows, list, partRows, seedToProjection, unknownRows, usageText } from "./discovery-view.mjs";
 
@@ -15,7 +16,10 @@ const h = (tag, props = {}, ...kids) => {
 const params = new URLSearchParams(location.search);
 const apiBase = window.GROUNDWORK_CONFIG?.apiBase || "";
 const preview = params.has("preview") || !apiBase;
-const client = preview ? mockClient({ fail: params.get("fail") }) : apiClient(apiBase);
+// Live mode uses the Groundwork sign-in (magic link → /auth/verify/ → sessionStorage, per tab). The backend decides who
+// is a tester; this page only sends the token.
+const signedIn = () => { try { return sessionStorage.getItem(SESSION_KEY) || ""; } catch { return ""; } };
+const client = preview ? mockClient({ fail: params.get("fail") }) : apiClient(apiBase, undefined, signedIn);
 const STORE = "groundwork.discover.session";
 const store = {
   get() { if (preview) return null; try { return JSON.parse(sessionStorage.getItem(STORE)); } catch { return null; } },
@@ -29,11 +33,11 @@ let busy = false;
 let exhausted = false;
 const atlas = document.querySelector("groundwork-living-atlas");
 
-$("mode").textContent = preview ? "Preview · scripted replies, no AI, nothing saved" : "Free discovery";
+$("mode").textContent = preview ? "Preview · scripted replies, no AI, nothing saved" : "Discovery · invited testers";
 $("mode").classList.toggle("preview", preview);
 $("limits").textContent = preview
   ? "This preview uses scripted replies so you can see how the map behaves. Nothing you type leaves your browser."
-  : "Free conversations are short and capped. Your words are kept for a limited time and you can delete them at any time.";
+  : "Conversations are short and capped. Your words are kept for a limited time and you can delete them at any time.";
 $("legend").replaceChildren(...Object.entries(KNOWLEDGE).map(([k, v]) => h("span", {}, h("span", { class: `k ${k}`, text: v.label }))));
 
 function message(role, text, extra = "") {
@@ -42,7 +46,15 @@ function message(role, text, extra = "") {
   li.scrollIntoView?.({ block: "nearest" });
   return li;
 }
+function showSignIn(show) {
+  $("signin").hidden = !show;
+  $("say").hidden = show;
+}
 function setError(status, body) {
+  if (status === 401 && !preview) {
+    try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+    showSignIn(true);
+  }
   const el = $("error");
   el.textContent = status === null ? "" : errorText(status, body);
   // Before any conversation exists, a live failure leaves the owner with nothing to do: offer the preview.
@@ -171,7 +183,27 @@ $("erase").addEventListener("click", async () => {
   setBusy(false);
 });
 
-if (session) resume();
+$("signin").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const status = $("signin-status");
+  status.textContent = "";
+  try {
+    const res = await fetch(apiBase.replace(/\/+$/, "") + "/platform/auth/magic-link", {
+      method: "POST", headers: { "content-type": "application/json" }, credentials: "omit", referrerPolicy: "no-referrer",
+      body: JSON.stringify({ email: $("email").value.trim(), app_slug: window.GROUNDWORK_CONFIG?.appSlug || "groundwork" }),
+    });
+    status.textContent = res.ok ? "Check your email for the sign-in link." : "Couldn't send a sign-in link. Check the address and try again.";
+  } catch {
+    status.textContent = "Couldn't reach Groundwork. Check your connection and try again.";
+  }
+});
+
+if (!preview && !signedIn()) {
+  showSignIn(true);
+  message("groundwork", OPENING);
+  renderMap(null, []);
+  renderHistory([]);
+} else if (session) resume();
 else {
   message("groundwork", OPENING);
   renderMap(null, []);
